@@ -150,6 +150,19 @@ Recommended:
 
 ---
 
+## Local HTTPS / TLS
+
+devbox automatically generates **local-only TLS certificates** during installation.
+
+- Uses `mkcert`
+- Certificates are trusted by Safari
+- Files are gitignored
+- Regenerated automatically if deleted
+
+No manual TLS setup is required.
+
+---
+
 ## First‑time setup (fresh macOS)
 
 ```bash

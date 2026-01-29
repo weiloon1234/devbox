@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GEN="$ROOT/generated/workspaces"
+MOUNT_BASE="${DEVBOX_MOUNT_BASE:-$HOME/DevboxMount}"
+
+ok(){ echo "✅ $*"; }
+warn(){ echo "⚠️  $*"; }
+bad(){ echo "❌ $*"; }
+
+has_cmd(){ command -v "$1" >/dev/null 2>&1; }
+
+echo "=== devbox doctor ==="
+echo "root: $ROOT"
+echo "mount base: $MOUNT_BASE"
+echo
+
+# Homebrew
+if has_cmd brew; then ok "brew installed"; else warn "brew missing (recommended)"; fi
+
+# Docker
+if has_cmd docker; then
+  ok "docker CLI installed"
+  if docker info >/dev/null 2>&1; then
+    ok "docker daemon running"
+  else
+    bad "docker daemon NOT running (open Docker Desktop)"
+  fi
+else
+  bad "docker CLI missing (install Docker Desktop)"
+fi
+
+# mkcert
+if has_cmd mkcert; then
+  ok "mkcert installed"
+  # check local CA
+  if mkcert -CAROOT >/dev/null 2>&1; then
+    ok "mkcert CAROOT available"
+  else
+    warn "mkcert CAROOT check failed"
+  fi
+else
+  warn "mkcert missing (HTTPS for *.test will fail)"
+fi
+
+# sshfs / macFUSE
+if has_cmd sshfs; then
+  ok "sshfs installed"
+else
+  warn "sshfs missing (mount helpers won't work)"
+fi
+
+# macFUSE presence (best-effort)
+if [[ -d "/Library/Filesystems/macfuse.fs" ]] || [[ -d "/Library/Filesystems/osxfuse.fs" ]]; then
+  ok "macFUSE appears installed"
+else
+  warn "macFUSE not detected (sshfs may fail)"
+fi
+
+echo
+echo "--- Docker networks ---"
+if has_cmd docker && docker info >/dev/null 2>&1; then
+  if docker network inspect proxy >/dev/null 2>&1; then ok "network: proxy"; else warn "network missing: proxy (run devbox-bootstrap)"; fi
+  if docker network inspect devbox >/dev/null 2>&1; then ok "network: devbox"; else warn "network missing: devbox (run devbox-bootstrap)"; fi
+else
+  warn "skipping network checks (docker not running)"
+fi
+
+echo
+echo "--- Core containers ---"
+if has_cmd docker && docker info >/dev/null 2>&1; then
+  for c in devbox-traefik devbox-mysql devbox-postgres devbox-redis; do
+    if docker ps --format '{{.Names}}' | grep -qx "$c"; then
+      ok "running: $c"
+    else
+      warn "not running: $c"
+    fi
+  done
+else
+  warn "skipping container checks (docker not running)"
+fi
+
+echo
+echo "--- Workspaces ---"
+if [[ ! -d "$GEN" ]]; then
+  warn "no generated/workspaces folder (expected if none created yet)"
+  exit 0
+fi
+
+shopt -s nullglob
+ws_count=0
+for wsdir in "$GEN"/*; do
+  [[ -d "$wsdir" ]] || continue
+  ws="$(basename "$wsdir")"
+  compose="$wsdir/docker-compose.yml"
+
+  if [[ ! -f "$compose" ]]; then
+    warn "workspace '$ws': missing docker-compose.yml"
+    continue
+  fi
+
+  ws_count=$((ws_count+1))
+
+  port="$(grep -E '^\s*-\s*"127\.0\.0\.1:[0-9]+:22"' "$compose" \
+    | head -n1 \
+    | sed -E 's/.*127\.0\.0\.1:([0-9]+):22.*/\1/')"
+  [[ -n "$port" ]] || port="?"
+
+  echo "Workspace: $ws (ssh port: $port)"
+
+  # Containers
+  for c in "ws-$ws" "ws-$ws-nginx" "ws-$ws-php81" "ws-$ws-php83" "ws-$ws-php84"; do
+    if has_cmd docker && docker info >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -qx "$c"; then
+      ok "  running: $c"
+    else
+      warn "  not running: $c"
+    fi
+  done
+
+  # Port check
+  if [[ "$port" != "?" ]]; then
+    if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
+      ok "  ssh port listening on localhost:$port"
+    else
+      warn "  ssh port NOT listening on localhost:$port"
+    fi
+  fi
+
+  # Mount check
+  mp="$MOUNT_BASE/$ws"
+  if [[ -d "$mp" ]] && mount | grep -q "on ${mp} "; then
+    ok "  mounted: $mp"
+  else
+    warn "  not mounted: $mp (use: devbox-mount $ws)"
+  fi
+
+  # TLS cert check
+  echo
+  echo "--- TLS ---"
+  CRT="$ROOT/proxy/certs/local.test.crt"
+  KEY="$ROOT/proxy/certs/local.test.key"
+
+  if [[ -f "$CRT" && -f "$KEY" ]]; then
+    ok "TLS cert present"
+  else
+    warn "TLS cert missing (will auto-generate on install)"
+  fi
+  
+  echo
+done
+shopt -u nullglob
+
+if [[ $ws_count -eq 0 ]]; then
+  warn "no workspaces found under generated/workspaces"
+  echo "Create one with: devbox-ws-new"
+fi
+
+echo "=== doctor done ==="

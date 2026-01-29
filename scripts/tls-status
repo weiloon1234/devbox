@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CERT_DIR="$ROOT/proxy/certs"
+CRT="$CERT_DIR/local.test.crt"
+KEY="$CERT_DIR/local.test.key"
+
+echo "=== devbox TLS status ==="
+
+if command -v mkcert >/dev/null 2>&1; then
+  echo "mkcert: installed"
+else
+  echo "mkcert: NOT installed"
+fi
+
+if [[ -f "$CRT" && -f "$KEY" ]]; then
+  echo "TLS cert: present"
+  echo " - $CRT"
+  echo " - $KEY"
+else
+  echo "TLS cert: MISSING"
+  echo "Run: ./scripts/install (will auto-generate)"
+fi

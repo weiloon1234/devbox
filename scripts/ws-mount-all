@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GEN="$ROOT/generated/workspaces"
+
+[[ -d "$GEN" ]] || { echo "(no generated workspaces)"; exit 0; }
+
+[[ "$DEVBOX_MOUNT_BASE" == "$HOME/"* ]] || fail "DEVBOX_MOUNT_BASE must live under \$HOME"
+
+shopt -s nullglob
+for d in "$GEN"/*; do
+  [[ -d "$d" ]] || continue
+  ws="$(basename "$d")"
+  "$ROOT/scripts/ws-mount" "$ws" || true
+done
+shopt -u nullglob

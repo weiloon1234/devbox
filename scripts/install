@@ -7,36 +7,138 @@ fail(){ echo "ERROR: $*" >&2; exit 1; }
 
 # Pick shell rc file
 SHELL_NAME="$(basename "${SHELL:-}")"
-RC_FILE=""
-
 if [[ "$SHELL_NAME" == "zsh" ]]; then
   RC_FILE="$HOME/.zshrc"
 elif [[ "$SHELL_NAME" == "bash" ]]; then
   RC_FILE="$HOME/.bashrc"
 else
-  # fallback
   RC_FILE="$HOME/.zshrc"
 fi
 
 BIN_DIR="$HOME/bin"
 mkdir -p "$BIN_DIR"
 
-# Ensure PATH line exists (idempotent)
-PATH_LINE='export PATH="$HOME/bin:$PATH"'
-if [[ -f "$RC_FILE" ]] && grep -qxF "$PATH_LINE" "$RC_FILE"; then
-  echo "[install] PATH already set in $RC_FILE"
-else
-  echo "" >> "$RC_FILE"
-  echo "# devbox helpers" >> "$RC_FILE"
-  echo "$PATH_LINE" >> "$RC_FILE"
-  echo "[install] Added PATH to $RC_FILE"
-fi
+ensure_path() {
+  local line='export PATH="$HOME/bin:$PATH"'
+  if [[ -f "$RC_FILE" ]] && grep -qxF "$line" "$RC_FILE"; then
+    echo "[install] PATH already set in $RC_FILE"
+  else
+    echo "" >> "$RC_FILE"
+    echo "# devbox helpers" >> "$RC_FILE"
+    echo "$line" >> "$RC_FILE"
+    echo "[install] Added PATH to $RC_FILE"
+  fi
+}
 
-# Helper to install a wrapper command
+ensure_mount_base() {
+  local line='export DEVBOX_MOUNT_BASE="$HOME/DevboxMount"'
+  if [[ -f "$RC_FILE" ]] && grep -qxF "$line" "$RC_FILE"; then
+    echo "[install] DEVBOX_MOUNT_BASE already set in $RC_FILE"
+  else
+    echo "" >> "$RC_FILE"
+    echo "# devbox mount base" >> "$RC_FILE"
+    echo "$line" >> "$RC_FILE"
+    echo "[install] Set DEVBOX_MOUNT_BASE in $RC_FILE"
+  fi
+}
+
+ensure_local_tls() {
+  local cert_dir="$ROOT/proxy/certs"
+  mkdir -p "$cert_dir"
+
+  if ! command -v mkcert >/dev/null 2>&1; then
+    echo "[install] mkcert not available; skipping TLS cert generation"
+    return 0
+  fi
+
+  echo "[install] ensuring mkcert local CA is installed..."
+  mkcert -install >/dev/null 2>&1 || true
+
+  local crt="$cert_dir/local.test.crt"
+  local key="$cert_dir/local.test.key"
+
+  if [[ -f "$crt" && -f "$key" ]]; then
+    echo "[install] TLS cert already exists: proxy/certs/local.test.(crt|key)"
+    return 0
+  fi
+
+  echo "[install] generating wildcard TLS cert for *.test ..."
+  mkcert \
+    -cert-file "$crt" \
+    -key-file "$key" \
+    "*.test" \
+    "localhost" \
+    "127.0.0.1" >/dev/null
+
+  echo "[install] generated: proxy/certs/local.test.(crt|key)"
+}
+
+has_cmd(){ command -v "$1" >/dev/null 2>&1; }
+
+ensure_homebrew() {
+  if has_cmd brew; then
+    echo "[install] Homebrew OK"
+    return
+  fi
+  echo "[install] Homebrew not found."
+  echo "Install it from: https://brew.sh"
+  echo "Then re-run: ./scripts/install"
+  exit 1
+}
+
+ensure_brew_pkg() {
+  local pkg="$1"
+  if brew list --formula "$pkg" >/dev/null 2>&1; then
+    echo "[install] brew formula OK: $pkg"
+  else
+    echo "[install] Installing: $pkg"
+    brew install "$pkg"
+  fi
+}
+
+ensure_brew_cask() {
+  local cask="$1"
+  if brew list --cask "$cask" >/dev/null 2>&1; then
+    echo "[install] brew cask OK: $cask"
+  else
+    echo "[install] Installing cask: $cask"
+    brew install --cask "$cask"
+  fi
+}
+
+# NOTE: Docker Desktop sometimes requires user approval in System Settings.
+ensure_docker_desktop() {
+  if has_cmd docker; then
+    echo "[install] docker CLI detected"
+    return
+  fi
+
+  echo "[install] docker CLI not found; attempting to install Docker Desktop (cask)..."
+  ensure_brew_cask docker
+
+  echo "[install] Docker Desktop installed. You must OPEN Docker Desktop once and finish setup."
+  echo "After Docker is running, re-run: devbox-bootstrap"
+}
+
+# mkcert for local TLS
+ensure_mkcert() {
+  ensure_brew_pkg mkcert
+  ensure_brew_pkg nss || true  # helpful for firefox; harmless otherwise
+}
+
+# SSHFS requirements
+ensure_sshfs() {
+  # macfuse is a cask
+  ensure_brew_cask macfuse
+  ensure_brew_pkg sshfs
+
+  echo "[install] macFUSE + sshfs installed."
+  echo "If sshfs fails later, reboot macOS once (macFUSE sometimes needs it)."
+}
+
 install_cmd() {
   local name="$1"
   local target="$2"
-
   [[ -f "$ROOT/$target" ]] || fail "missing $target"
 
   cat > "$BIN_DIR/$name" <<EOF
@@ -48,23 +150,42 @@ EOF
   echo "[install] Installed $name -> $target"
 }
 
-# Install wrappers
+echo "=== devbox install ==="
+ensure_path
+ensure_mount_base
+ensure_homebrew
+ensure_mkcert
+ensure_local_tls
+ensure_sshfs
+ensure_docker_desktop
+
+# Wrappers
 install_cmd devbox-bootstrap scripts/bootstrap
 install_cmd devbox-reset scripts/reset
 install_cmd devbox-ws-new scripts/workspace-new
 install_cmd devbox-ws-list scripts/ws-list
 install_cmd devbox-ws-ssh scripts/ws-ssh
+install_cmd devbox-ws-php scripts/ws-php
+install_cmd devbox-add-project scripts/add-project
 install_cmd devbox-db-mysql scripts/db-mysql
 install_cmd devbox-db-psql scripts/db-psql
 install_cmd devbox-db-redis scripts/db-redis
-install_cmd devbox-add-project scripts/add-project
-install_cmd devbox-ws-php scripts/ws-php
-install_cmd devbox-nginx-reload scripts/nginx-reload
+install_cmd devbox-tls-status scripts/tls-status
+
+# Mount helpers (you'll create these scripts next)
+install_cmd devbox-mount scripts/ws-mount
+install_cmd devbox-umount scripts/ws-umount
+install_cmd devbox-mount-all scripts/ws-mount-all
+install_cmd devbox-umount-all scripts/ws-umount-all
+
+install_cmd devbox-doctor scripts/doctor
 
 echo
 echo "[install] Done."
 echo "Restart your terminal or run:"
 echo "  source \"$RC_FILE\""
 echo
-echo "Then try:"
-echo "  devbox-ws-list"
+echo "Next:"
+echo "  devbox-bootstrap"
+echo "  devbox-ws-new"
+echo "  devbox-mount <workspace>"

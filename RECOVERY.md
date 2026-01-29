@@ -92,3 +92,13 @@ Nothing is precious.
 Everything is rebuildable.
 
 If recovery takes longer than 10 minutes, the design failed.
+
+### TLS certificates
+
+Local HTTPS certificates are generated automatically during:
+
+```bash
+./scripts/install
+```
+
+If certificates are deleted, re-running the install script will regenerate them.
