@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+fail() { echo "ERROR: $*" >&2; exit 1; }
+need_cmd() { command -v "$1" >/dev/null 2>&1 || fail "missing required command: $1"; }
+
+need_cmd docker
+need_cmd mkcert
+
+docker info >/dev/null 2>&1 || fail "Docker daemon not reachable. Start Docker Desktop."
+
+echo "[devbox] bootstrap starting..."
+
+# Ensure networks exist
+if ! docker network inspect proxy >/dev/null 2>&1; then
+  echo "[devbox] creating docker network: proxy"
+  docker network create proxy >/dev/null
+fi
+
+if ! docker network inspect devbox >/dev/null 2>&1; then
+  echo "[devbox] creating docker network: devbox"
+  docker network create devbox >/dev/null
+fi
+
+# Generate local TLS certs if missing (wildcard for *.test)
+CERT_DIR="$ROOT/proxy/certs"
+mkdir -p "$CERT_DIR"
+CERT_PEM="$CERT_DIR/local.pem"
+CERT_KEY="$CERT_DIR/local-key.pem"
+
+if [[ ! -f "$CERT_PEM" || ! -f "$CERT_KEY" ]]; then
+  echo "[devbox] generating local TLS certs via mkcert..."
+  mkcert -install >/dev/null 2>&1 || true
+  (cd "$CERT_DIR" && mkcert \
+    -cert-file local.pem \
+    -key-file local-key.pem \
+    "*.test" \
+    "localhost" "127.0.0.1" "::1"
+  )
+else
+  echo "[devbox] TLS certs exist, skipping mkcert generation"
+fi
+
+# Precheck: for each generated workspace, ensure referenced pubkey file exists
+GEN_ROOT="$ROOT/generated/workspaces"
+if [[ -d "$GEN_ROOT" ]]; then
+  shopt -s nullglob
+  for wsdir in "$GEN_ROOT"/*; do
+    [[ -d "$wsdir" ]] || continue
+    compose="$wsdir/docker-compose.yml"
+    [[ -f "$compose" ]] || continue
+
+    # Extract pubkey filename from the compose file path line:
+    # ../../keys/<pubkey>:/seed/authorized_keys:ro
+    pubkey="$(grep -E '^\s*-\s*\.\./\.\./keys/[^:]+:/seed/authorized_keys:ro' "$compose" \
+      | head -n1 \
+      | sed -E 's/^\s*-\s*\.\.\/\.\.\/keys\/([^:]+):.*/\1/')"
+
+    if [[ -n "$pubkey" ]]; then
+      [[ -f "$ROOT/keys/$pubkey" ]] || fail "workspace $(basename "$wsdir") requires missing key file: keys/$pubkey"
+    else
+      fail "cannot detect pubkey in $compose (expected ../../keys/<file>:/seed/authorized_keys:ro)"
+    fi
+  done
+  shopt -u nullglob
+fi
+
+# Start proxy (Traefik)
+echo "[devbox] starting proxy..."
+docker compose -f "$ROOT/proxy/docker-compose.yml" up -d
+
+# Start shared DB stack
+echo "[devbox] starting shared db..."
+docker compose -f "$ROOT/db/docker-compose.yml" up -d
+
+echo "[devbox] building php images..."
+docker build -t devbox-php:8.1 --build-arg PHP_VERSION=8.1 "$ROOT/runtime/php"
+docker build -t devbox-php:8.2 --build-arg PHP_VERSION=8.2 "$ROOT/runtime/php"
+docker build -t devbox-php:8.3 --build-arg PHP_VERSION=8.3 "$ROOT/runtime/php"
+docker build -t devbox-php:8.4 --build-arg PHP_VERSION=8.4 "$ROOT/runtime/php"
+docker build -t devbox-php:8.5 --build-arg PHP_VERSION=8.5 "$ROOT/runtime/php"
+
+echo "[devbox] building workspace image..."
+docker build -t devbox-workspace:latest "$ROOT/templates/workspace"
+
+# Start all generated workspaces
+echo "[devbox] starting generated workspaces..."
+STARTED=0
+if [[ -d "$GEN_ROOT" ]]; then
+  shopt -s nullglob
+  for compose in "$GEN_ROOT"/*/docker-compose.yml; do
+    [[ -f "$compose" ]] || continue
+    docker compose -f "$compose" up -d
+    STARTED=$((STARTED+1))
+  done
+  shopt -u nullglob
+fi
+
+echo "[devbox] bootstrap complete."
+echo "[devbox] workspaces started: $STARTED"
+echo
+echo "Tip: create a workspace with:"
+echo "  ./scripts/workspace-new"

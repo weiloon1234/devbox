@@ -1,0 +1,78 @@
+############################
+# Local-only / secrets
+############################
+
+# SSH public keys (local only)
+keys/*
+!keys/.keep
+
+# mkcert / TLS artifacts (local only)
+proxy/certs/*
+!proxy/certs/.keep
+
+############################
+# Generated workspaces (NEVER commit)
+############################
+
+generated/workspaces/*
+!generated/workspaces/.keep
+
+############################
+# Docker runtime noise
+############################
+
+*.pid
+*.log
+
+############################
+# OS / editor noise
+############################
+
+.DS_Store
+.AppleDouble
+.LSOverride
+
+.idea/
+.vscode/
+*.swp
+*.swo
+*.tmp
+
+############################
+# Node / frontend junk (infra repo only)
+############################
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+############################
+# Python
+############################
+
+__pycache__/
+*.pyc
+
+############################
+# Go
+############################
+
+bin/
+*.exe
+*.out
+
+############################
+# Rust
+############################
+
+target/
+
+############################
+# Misc safety
+############################
+
+.env
+.env.*
+!.env.example

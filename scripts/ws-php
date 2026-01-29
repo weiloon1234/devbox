@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail(){ echo "ERROR: $*" >&2; exit 1; }
+
+WS="${1:-}"
+PROJECT="${2:-}"
+shift 2 || true
+
+[[ -n "$WS" && -n "$PROJECT" ]] || fail "usage: ./scripts/ws-php <workspace> <project> <command...>"
+
+CMD=("$@")
+[[ ${#CMD[@]} -gt 0 ]] || fail "missing command (example: php -v, composer install, php artisan migrate)"
+
+# read .php-version via workspace container (source of truth)
+VERSION="$(docker exec "ws-$WS" bash -lc "cat /workspace/projects/$PROJECT/.php-version 2>/dev/null || true" | tr -d '\r' | xargs || true)"
+[[ -n "$VERSION" ]] || VERSION="8.3"
+
+case "$VERSION" in
+  8.1) PHP_CONT="ws-$WS-php81" ;;
+  8.2) PHP_CONT="ws-$WS-php82" ;;
+  8.3) PHP_CONT="ws-$WS-php83" ;;
+  8.4) PHP_CONT="ws-$WS-php84" ;;
+  8.5) PHP_CONT="ws-$WS-php85" ;;
+  *) fail "unsupported php version '$VERSION' (supported: 8.1, 8.2, 8.3, 8.4, 8.5)" ;;
+esac
+
+# run in project root
+exec docker exec -it -w "/workspace/projects/$PROJECT" "$PHP_CONT" "${CMD[@]}"

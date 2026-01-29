@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+fail(){ echo "ERROR: $*" >&2; exit 1; }
+
+# Pick shell rc file
+SHELL_NAME="$(basename "${SHELL:-}")"
+RC_FILE=""
+
+if [[ "$SHELL_NAME" == "zsh" ]]; then
+  RC_FILE="$HOME/.zshrc"
+elif [[ "$SHELL_NAME" == "bash" ]]; then
+  RC_FILE="$HOME/.bashrc"
+else
+  # fallback
+  RC_FILE="$HOME/.zshrc"
+fi
+
+BIN_DIR="$HOME/bin"
+mkdir -p "$BIN_DIR"
+
+# Ensure PATH line exists (idempotent)
+PATH_LINE='export PATH="$HOME/bin:$PATH"'
+if [[ -f "$RC_FILE" ]] && grep -qxF "$PATH_LINE" "$RC_FILE"; then
+  echo "[install] PATH already set in $RC_FILE"
+else
+  echo "" >> "$RC_FILE"
+  echo "# devbox helpers" >> "$RC_FILE"
+  echo "$PATH_LINE" >> "$RC_FILE"
+  echo "[install] Added PATH to $RC_FILE"
+fi
+
+# Helper to install a wrapper command
+install_cmd() {
+  local name="$1"
+  local target="$2"
+
+  [[ -f "$ROOT/$target" ]] || fail "missing $target"
+
+  cat > "$BIN_DIR/$name" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+exec "$ROOT/$target" "\$@"
+EOF
+  chmod +x "$BIN_DIR/$name"
+  echo "[install] Installed $name -> $target"
+}
+
+# Install wrappers
+install_cmd devbox-bootstrap scripts/bootstrap
+install_cmd devbox-reset scripts/reset
+install_cmd devbox-ws-new scripts/workspace-new
+install_cmd devbox-ws-list scripts/ws-list
+install_cmd devbox-ws-ssh scripts/ws-ssh
+install_cmd devbox-db-mysql scripts/db-mysql
+install_cmd devbox-db-psql scripts/db-psql
+install_cmd devbox-db-redis scripts/db-redis
+install_cmd devbox-add-project scripts/add-project
+install_cmd devbox-ws-php scripts/ws-php
+install_cmd devbox-nginx-reload scripts/nginx-reload
+
+echo
+echo "[install] Done."
+echo "Restart your terminal or run:"
+echo "  source \"$RC_FILE\""
+echo
+echo "Then try:"
+echo "  devbox-ws-list"

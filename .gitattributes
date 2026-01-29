@@ -1,0 +1,56 @@
+############################
+# Line endings (critical)
+############################
+
+* text=auto eol=lf
+
+############################
+# Shell scripts
+############################
+
+*.sh text eol=lf
+
+############################
+# YAML / config
+############################
+
+*.yml text eol=lf
+*.yaml text eol=lf
+*.conf text eol=lf
+*.tpl text eol=lf
+
+############################
+# Docker
+############################
+
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+
+############################
+# Markdown
+############################
+
+*.md text eol=lf
+
+############################
+# Binary safety
+############################
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.tgz binary
+*.woff binary
+*.woff2 binary
+
+############################
+# Prevent accidental diff noise
+############################
+
+*.lock -diff

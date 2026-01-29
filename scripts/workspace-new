@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+TPL_DIR="$ROOT/templates/workspace"
+OUT_ROOT="$ROOT/generated/workspaces"
+KEYS_DIR="$ROOT/keys"
+
+fail() { echo "ERROR: $*" >&2; exit 1; }
+
+need_file() { [[ -f "$1" ]] || fail "missing required file: $1"; }
+
+prompt() {
+  local var_name="$1"
+  local label="$2"
+  local default="${3:-}"
+  local input=""
+  if [[ -n "$default" ]]; then
+    read -r -p "$label [$default]: " input
+    input="${input:-$default}"
+  else
+    read -r -p "$label: " input
+  fi
+  printf -v "$var_name" '%s' "$input"
+}
+
+is_safe_name() {
+  [[ "$1" =~ ^[a-z0-9][a-z0-9-]{0,30}$ ]]
+}
+
+port_free() {
+  local p="$1"
+  ! lsof -nP -iTCP:"$p" -sTCP:LISTEN >/dev/null 2>&1
+}
+
+suggest_port() {
+  local p=2222
+  while [[ $p -lt 2300 ]]; do
+    if port_free "$p"; then
+      echo "$p"
+      return 0
+    fi
+    p=$((p+1))
+  done
+  fail "no free port found in 2222-2299"
+}
+
+need_file "$TPL_DIR/docker-compose.yml.tpl"
+need_file "$TPL_DIR/bootstrap.sh.tpl"
+need_file "$TPL_DIR/nginx.conf.tpl"
+
+echo "=== devbox workspace-new ==="
+
+prompt WS_NAME "Workspace name (lowercase, e.g. personal/private/client1)" ""
+[[ -n "$WS_NAME" ]] || fail "workspace name is required"
+is_safe_name "$WS_NAME" || fail "workspace name must be lowercase letters/numbers/dash, max 31 chars"
+
+DEFAULT_PORT="$(suggest_port)"
+prompt SSH_PORT "SSH port to expose on localhost" "$DEFAULT_PORT"
+[[ "$SSH_PORT" =~ ^[0-9]+$ ]] || fail "SSH port must be a number"
+port_free "$SSH_PORT" || fail "port $SSH_PORT is already in use"
+
+DEFAULT_PUBKEY="${WS_NAME}_id_ed25519.pub"
+prompt PUBKEY_FILE "Public key filename under devbox/keys/" "$DEFAULT_PUBKEY"
+need_file "$KEYS_DIR/$PUBKEY_FILE"
+
+WS_DIR="$OUT_ROOT/$WS_NAME"
+COMPOSE_OUT="$WS_DIR/docker-compose.yml"
+BOOTSTRAP_OUT="$WS_DIR/bootstrap.sh"
+NGINX_OUT="$WS_DIR/nginx.conf"
+
+CODE_VOLUME="dev_ws_${WS_NAME}_code"
+
+DEFAULT_GIT_NAME="$WS_NAME"
+prompt GIT_NAME "Git user.name for commits" "$DEFAULT_GIT_NAME"
+
+DEFAULT_GIT_EMAIL="${WS_NAME}@localhost"
+prompt GIT_EMAIL "Git user.email for commits" "$DEFAULT_GIT_EMAIL"
+
+mkdir -p "$WS_DIR"
+
+# Render docker-compose.yml
+sed \
+  -e "s/__WS_NAME__/${WS_NAME}/g" \
+  -e "s/__SSH_PORT__/${SSH_PORT}/g" \
+  -e "s/__PUBKEY_FILE__/${PUBKEY_FILE//\//\\/}/g" \
+  -e "s/__CODE_VOLUME__/${CODE_VOLUME}/g" \
+  "$TPL_DIR/docker-compose.yml.tpl" > "$COMPOSE_OUT"
+
+# Render bootstrap.sh
+sed \
+  -e "s/__WS_NAME__/${WS_NAME}/g" \
+  -e "s/__PUBKEY_FILE__/${PUBKEY_FILE//\//\\/}/g" \
+  -e "s/__GIT_NAME__/${GIT_NAME//\//\\/}/g" \
+  -e "s/__GIT_EMAIL__/${GIT_EMAIL//\//\\/}/g" \
+  "$TPL_DIR/bootstrap.sh.tpl" > "$BOOTSTRAP_OUT"
+chmod +x "$BOOTSTRAP_OUT"
+
+# Render nginx.conf
+sed \
+  -e "s/__WS_NAME__/${WS_NAME}/g" \
+  "$TPL_DIR/nginx.conf.tpl" > "$NGINX_OUT"
+
+echo
+echo "Generated:"
+echo " - $COMPOSE_OUT"
+echo " - $BOOTSTRAP_OUT"
+echo " - $NGINX_OUT"
+echo
+echo "Workspace details:"
+echo " - name: $WS_NAME"
+echo " - ssh:  127.0.0.1:$SSH_PORT"
+echo " - vol:  $CODE_VOLUME"
+echo " - key:  keys/$PUBKEY_FILE"
+echo " - git:  $GIT_NAME <$GIT_EMAIL>"
+echo
+
+read -r -p "Start this workspace now? (y/N): " CONFIRM
+CONFIRM="${CONFIRM,,}"
+if [[ "$CONFIRM" != "y" ]]; then
+  echo "OK. You can start later with:"
+  echo "  docker compose -f $COMPOSE_OUT up -d"
+  exit 0
+fi
+
+# Ensure networks exist (proxy + devbox)
+if ! docker network inspect proxy >/dev/null 2>&1; then
+  fail "docker network 'proxy' missing. Run ./scripts/bootstrap first."
+fi
+if ! docker network inspect devbox >/dev/null 2>&1; then
+  fail "docker network 'devbox' missing. Run ./scripts/bootstrap first."
+fi
+
+docker compose -f "$COMPOSE_OUT" up -d
+echo "OK: workspace '$WS_NAME' started."

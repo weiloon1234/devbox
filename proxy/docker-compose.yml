@@ -1,0 +1,38 @@
+services:
+  traefik:
+    image: traefik:v3.1
+    container_name: devbox-traefik
+    command:
+      # Dashboard (optional; no published port here)
+      - --api.dashboard=true
+
+      # Providers
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/certs-config
+      - --providers.file.watch=true
+
+      # Entrypoints
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+
+      # Redirect http -> https
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./certs-config:/certs-config:ro
+      - ./certs:/certs:ro
+
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
+    name: proxy
