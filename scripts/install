@@ -5,6 +5,41 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 fail(){ echo "ERROR: $*" >&2; exit 1; }
 
+# ----------------------------
+# Args
+# ----------------------------
+DRY_RUN=0
+for arg in "${@:-}"; do
+  case "$arg" in
+    --dry-run|-n) DRY_RUN=1 ;;
+    --help|-h)
+      echo "usage: ./scripts/install [--dry-run|-n]"
+      exit 0
+      ;;
+  esac
+done
+
+# ----------------------------
+# Helpers
+# ----------------------------
+has_cmd(){ command -v "$1" >/dev/null 2>&1; }
+
+run() {
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[dry-run] $*"
+    return 0
+  fi
+  eval "$@"
+}
+
+run_sudo() {
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[dry-run] sudo $*"
+    return 0
+  fi
+  sudo bash -lc "$*"
+}
+
 # Pick shell rc file
 SHELL_NAME="$(basename "${SHELL:-}")"
 if [[ "$SHELL_NAME" == "zsh" ]]; then
@@ -16,69 +51,43 @@ else
 fi
 
 BIN_DIR="$HOME/bin"
-mkdir -p "$BIN_DIR"
+run "mkdir -p \"$BIN_DIR\""
+
+append_rc_once() {
+  local line="$1"
+  local comment="${2:-}"
+
+  if [[ -f "$RC_FILE" ]] && grep -qxF "$line" "$RC_FILE"; then
+    echo "[install] already in $RC_FILE: $line"
+    return 0
+  fi
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[dry-run] append to $RC_FILE: ${comment:-# devbox}"
+    echo "[dry-run] append to $RC_FILE: $line"
+    return 0
+  fi
+
+  echo "" >> "$RC_FILE"
+  [[ -n "$comment" ]] && echo "$comment" >> "$RC_FILE"
+  echo "$line" >> "$RC_FILE"
+}
 
 ensure_path() {
-  local line='export PATH="$HOME/bin:$PATH"'
-  if [[ -f "$RC_FILE" ]] && grep -qxF "$line" "$RC_FILE"; then
-    echo "[install] PATH already set in $RC_FILE"
-  else
-    echo "" >> "$RC_FILE"
-    echo "# devbox helpers" >> "$RC_FILE"
-    echo "$line" >> "$RC_FILE"
-    echo "[install] Added PATH to $RC_FILE"
-  fi
+  append_rc_once 'export PATH="$HOME/bin:$PATH"' "# devbox helpers"
 }
 
 ensure_mount_base() {
-  local line='export DEVBOX_MOUNT_BASE="$HOME/DevboxMount"'
-  if [[ -f "$RC_FILE" ]] && grep -qxF "$line" "$RC_FILE"; then
-    echo "[install] DEVBOX_MOUNT_BASE already set in $RC_FILE"
-  else
-    echo "" >> "$RC_FILE"
-    echo "# devbox mount base" >> "$RC_FILE"
-    echo "$line" >> "$RC_FILE"
-    echo "[install] Set DEVBOX_MOUNT_BASE in $RC_FILE"
-  fi
+  append_rc_once 'export DEVBOX_MOUNT_BASE="$HOME/DevboxMount"' "# devbox mount base"
 }
 
-ensure_local_tls() {
-  local cert_dir="$ROOT/proxy/certs"
-  mkdir -p "$cert_dir"
-
-  if ! command -v mkcert >/dev/null 2>&1; then
-    echo "[install] mkcert not available; skipping TLS cert generation"
-    return 0
-  fi
-
-  echo "[install] ensuring mkcert local CA is installed..."
-  mkcert -install >/dev/null 2>&1 || true
-
-  local crt="$cert_dir/local.test.crt"
-  local key="$cert_dir/local.test.key"
-
-  if [[ -f "$crt" && -f "$key" ]]; then
-    echo "[install] TLS cert already exists: proxy/certs/local.test.(crt|key)"
-    return 0
-  fi
-
-  echo "[install] generating wildcard TLS cert for *.test ..."
-  mkcert \
-    -cert-file "$crt" \
-    -key-file "$key" \
-    "*.test" \
-    "localhost" \
-    "127.0.0.1" >/dev/null
-
-  echo "[install] generated: proxy/certs/local.test.(crt|key)"
-}
-
-has_cmd(){ command -v "$1" >/dev/null 2>&1; }
-
+# ----------------------------
+# Homebrew + pkg helpers
+# ----------------------------
 ensure_homebrew() {
   if has_cmd brew; then
     echo "[install] Homebrew OK"
-    return
+    return 0
   fi
   echo "[install] Homebrew not found."
   echo "Install it from: https://brew.sh"
@@ -92,7 +101,7 @@ ensure_brew_pkg() {
     echo "[install] brew formula OK: $pkg"
   else
     echo "[install] Installing: $pkg"
-    brew install "$pkg"
+    run "brew install $pkg"
   fi
 }
 
@@ -102,15 +111,17 @@ ensure_brew_cask() {
     echo "[install] brew cask OK: $cask"
   else
     echo "[install] Installing cask: $cask"
-    brew install --cask "$cask"
+    run "brew install --cask $cask"
   fi
 }
 
-# NOTE: Docker Desktop sometimes requires user approval in System Settings.
+# ----------------------------
+# Docker Desktop
+# ----------------------------
 ensure_docker_desktop() {
   if has_cmd docker; then
     echo "[install] docker CLI detected"
-    return
+    return 0
   fi
 
   echo "[install] docker CLI not found; attempting to install Docker Desktop (cask)..."
@@ -120,40 +131,168 @@ ensure_docker_desktop() {
   echo "After Docker is running, re-run: devbox-bootstrap"
 }
 
-# mkcert for local TLS
+# ----------------------------
+# mkcert + local TLS
+# ----------------------------
 ensure_mkcert() {
   ensure_brew_pkg mkcert
-  ensure_brew_pkg nss || true  # helpful for firefox; harmless otherwise
+  ensure_brew_pkg nss || true
 }
 
-# SSHFS requirements
+ensure_local_tls() {
+  local cert_dir="$ROOT/proxy/certs"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[dry-run] mkdir -p \"$cert_dir\""
+  else
+    mkdir -p "$cert_dir"
+  fi
+
+  if ! has_cmd mkcert; then
+    echo "[install] mkcert not available; skipping TLS cert generation"
+    return 0
+  fi
+
+  echo "[install] ensuring mkcert local CA is installed..."
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[dry-run] mkcert -install"
+  else
+    mkcert -install >/dev/null 2>&1 || true
+  fi
+
+  local crt="$cert_dir/local.test.crt"
+  local key="$cert_dir/local.test.key"
+
+  if [[ -f "$crt" && -f "$key" ]]; then
+    echo "[install] TLS cert already exists: proxy/certs/local.test.(crt|key)"
+    return 0
+  fi
+
+  echo "[install] generating wildcard TLS cert for *.test ..."
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[dry-run] mkcert -cert-file \"$crt\" -key-file \"$key\" \"*.test\" \"localhost\" \"127.0.0.1\""
+  else
+    mkcert \
+      -cert-file "$crt" \
+      -key-file "$key" \
+      "*.test" \
+      "localhost" \
+      "127.0.0.1" >/dev/null
+  fi
+
+  echo "[install] generated: proxy/certs/local.test.(crt|key)"
+}
+
+# ----------------------------
+# SSHFS (macFUSE + sshfs)
+# ----------------------------
 ensure_sshfs() {
-  # macfuse is a cask
   ensure_brew_cask macfuse
   ensure_brew_pkg sshfs
 
   echo "[install] macFUSE + sshfs installed."
-  echo "If sshfs fails later, reboot macOS once (macFUSE sometimes needs it)."
+  echo "[install] If sshfs fails later, reboot macOS once (macFUSE sometimes needs it)."
 }
 
+# ----------------------------
+# dnsmasq (prompt + auto intel/as)
+# ----------------------------
+ensure_dnsmasq() {
+  if ! has_cmd brew; then
+    echo "[install] Homebrew missing; cannot install dnsmasq"
+    return 1
+  fi
+
+  if brew list --formula dnsmasq >/dev/null 2>&1; then
+    echo "[install] dnsmasq already installed"
+  else
+    echo "[install] Installing dnsmasq..."
+    run "brew install dnsmasq"
+  fi
+
+  local brew_prefix
+  brew_prefix="$(brew --prefix)"
+  local conf_dir="${brew_prefix}/etc/dnsmasq.d"
+  local conf_file="${conf_dir}/devbox-test.conf"
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[dry-run] mkdir -p \"$conf_dir\""
+  else
+    mkdir -p "$conf_dir"
+  fi
+
+  if [[ -f "$conf_file" ]]; then
+    echo "[install] dnsmasq *.test rule already exists: $conf_file"
+  else
+    echo "[install] Creating dnsmasq rule: *.test → 127.0.0.1"
+    # use sudo to avoid permissions issues across setups
+    run_sudo "mkdir -p '$conf_dir' && printf '%s\n' 'address=/test/127.0.0.1' > '$conf_file'"
+  fi
+
+  # Start service (may require sudo depending on brew setup)
+  if brew services list | grep -q '^dnsmasq.*started'; then
+    echo "[install] dnsmasq already running"
+  else
+    echo "[install] Starting dnsmasq (sudo required)"
+    run_sudo "brew services start dnsmasq"
+  fi
+
+  echo "[install] Wildcard DNS enabled (*.test → 127.0.0.1)"
+}
+
+prompt_dnsmasq() {
+  echo
+  echo "[install] Wildcard DNS setup"
+  echo "This enables: *.test → 127.0.0.1 (recommended for devbox)"
+  echo "Requires sudo (may prompt once)."
+  read -r -p "Enable wildcard DNS via dnsmasq? (y/N): " ANSWER
+  ANSWER="$(echo "$ANSWER" | tr '[:upper:]' '[:lower:]')"
+
+  if [[ "$ANSWER" != "y" ]]; then
+    echo "[install] Skipping dnsmasq setup"
+    return 0
+  fi
+
+  ensure_dnsmasq
+}
+
+# ----------------------------
+# Wrapper installation
+# ----------------------------
 install_cmd() {
   local name="$1"
   local target="$2"
   [[ -f "$ROOT/$target" ]] || fail "missing $target"
 
-  cat > "$BIN_DIR/$name" <<EOF
+  local out="$BIN_DIR/$name"
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[dry-run] write wrapper: $out -> $ROOT/$target"
+    return 0
+  fi
+
+  cat > "$out" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 exec "$ROOT/$target" "\$@"
 EOF
-  chmod +x "$BIN_DIR/$name"
+  chmod +x "$out"
   echo "[install] Installed $name -> $target"
 }
 
+# ----------------------------
+# Main flow
+# ----------------------------
 echo "=== devbox install ==="
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  echo "[install] DRY-RUN enabled (no changes will be made)"
+fi
+
 ensure_path
 ensure_mount_base
 ensure_homebrew
+
+prompt_dnsmasq
+
 ensure_mkcert
 ensure_local_tls
 ensure_sshfs
@@ -172,7 +311,7 @@ install_cmd devbox-db-psql scripts/db-psql
 install_cmd devbox-db-redis scripts/db-redis
 install_cmd devbox-tls-status scripts/tls-status
 
-# Mount helpers (you'll create these scripts next)
+# Mount helpers
 install_cmd devbox-mount scripts/ws-mount
 install_cmd devbox-umount scripts/ws-umount
 install_cmd devbox-mount-all scripts/ws-mount-all
@@ -182,8 +321,12 @@ install_cmd devbox-doctor scripts/doctor
 
 echo
 echo "[install] Done."
-echo "Restart your terminal or run:"
-echo "  source \"$RC_FILE\""
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  echo "[install] (dry-run) Nothing changed."
+else
+  echo "Restart your terminal or run:"
+  echo "  source \"$RC_FILE\""
+fi
 echo
 echo "Next:"
 echo "  devbox-bootstrap"

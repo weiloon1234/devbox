@@ -150,6 +150,13 @@ Recommended:
 
 ---
 
+Recommended:
+
+- dnsmasq (wildcard DNS for `*.test`)
+  - devbox installer can configure this automatically
+
+---
+
 ## Local HTTPS / TLS
 
 devbox automatically generates **local-only TLS certificates** during installation.

@@ -136,7 +136,6 @@ for wsdir in "$GEN"/*; do
   fi
 
   # TLS cert check
-  echo
   echo "--- TLS ---"
   CRT="$ROOT/proxy/certs/local.test.crt"
   KEY="$ROOT/proxy/certs/local.test.key"
@@ -147,6 +146,17 @@ for wsdir in "$GEN"/*; do
     warn "TLS cert missing (will auto-generate on install)"
   fi
   
+  echo "--- DNS (.test wildcard) ---"
+  if command -v dnsmasq >/dev/null 2>&1; then
+    if ps aux | grep -v grep | grep -q dnsmasq; then
+      ok "dnsmasq running (*.test resolves)"
+    else
+      warn "dnsmasq installed but not running"
+    fi
+  else
+    warn "dnsmasq not installed (*.test will not resolve)"
+  fi
+
   echo
 done
 shopt -u nullglob
