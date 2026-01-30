@@ -51,6 +51,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-server sudo ca-certificates git curl unzip \
+    libreadline8 libsqlite3-0 libxml2 libssl3 libcurl4 libonig5 libzip4 \
+    libpng16-16 libjpeg8 libfreetype6 libicu74 libsodium23 \
     && rm -rf /var/lib/apt/lists/*
 
 # --------------------------------------------------
