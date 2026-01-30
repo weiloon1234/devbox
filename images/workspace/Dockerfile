@@ -149,9 +149,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.13 -m pip install --upgrade pip
 
 # --------------------------------------------------
-# AI coding tools (Claude Code, Codex)
+# AI coding tools
+# Install as ubuntu user (tools install to home dir)
 # --------------------------------------------------
-RUN npm install -g @anthropic-ai/claude-code @openai/codex
+
+# Claude Code (native binary — npm method is deprecated)
+USER ubuntu
+RUN curl -fsSL https://claude.ai/install.sh | bash
+USER root
+
+# Gemini CLI (npm global)
+RUN npm install -g @google/gemini-cli
+
+# Codex (npm global)
+RUN npm install -g @openai/codex
+
+# OpenCode (native binary)
+USER ubuntu
+RUN curl -fsSL https://opencode.ai/install | bash
+USER root
+
+# Ensure ubuntu's local bins are in PATH for SSH sessions
+RUN echo 'export PATH="$HOME/.claude/bin:$HOME/.local/bin:$PATH"' >> /home/ubuntu/.bashrc
 
 EXPOSE 22
 
