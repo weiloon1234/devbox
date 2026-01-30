@@ -5,7 +5,7 @@ RUN mkdir -p /collected/php /collected/lib && \
     cp -a /usr/local/. /collected/php/ && \
     { ldd /usr/local/bin/php 2>/dev/null; \
       find /usr/local/lib/php/extensions -name '*.so' -exec ldd {} \; 2>/dev/null; \
-    } | grep -oP '/usr/lib/\S+' | sort -u | \
+    } | grep -oP '(?:/usr/lib|/lib)/\S+' | sort -u | \
     xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true
 
 FROM devbox-php:8.2 AS php82-collector
@@ -14,7 +14,7 @@ RUN mkdir -p /collected/php /collected/lib && \
     cp -a /usr/local/. /collected/php/ && \
     { ldd /usr/local/bin/php 2>/dev/null; \
       find /usr/local/lib/php/extensions -name '*.so' -exec ldd {} \; 2>/dev/null; \
-    } | grep -oP '/usr/lib/\S+' | sort -u | \
+    } | grep -oP '(?:/usr/lib|/lib)/\S+' | sort -u | \
     xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true
 
 FROM devbox-php:8.3 AS php83-collector
@@ -23,7 +23,7 @@ RUN mkdir -p /collected/php /collected/lib && \
     cp -a /usr/local/. /collected/php/ && \
     { ldd /usr/local/bin/php 2>/dev/null; \
       find /usr/local/lib/php/extensions -name '*.so' -exec ldd {} \; 2>/dev/null; \
-    } | grep -oP '/usr/lib/\S+' | sort -u | \
+    } | grep -oP '(?:/usr/lib|/lib)/\S+' | sort -u | \
     xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true
 
 FROM devbox-php:8.4 AS php84-collector
@@ -32,7 +32,7 @@ RUN mkdir -p /collected/php /collected/lib && \
     cp -a /usr/local/. /collected/php/ && \
     { ldd /usr/local/bin/php 2>/dev/null; \
       find /usr/local/lib/php/extensions -name '*.so' -exec ldd {} \; 2>/dev/null; \
-    } | grep -oP '/usr/lib/\S+' | sort -u | \
+    } | grep -oP '(?:/usr/lib|/lib)/\S+' | sort -u | \
     xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true
 
 FROM devbox-php:8.5 AS php85-collector
@@ -41,7 +41,7 @@ RUN mkdir -p /collected/php /collected/lib && \
     cp -a /usr/local/. /collected/php/ && \
     { ldd /usr/local/bin/php 2>/dev/null; \
       find /usr/local/lib/php/extensions -name '*.so' -exec ldd {} \; 2>/dev/null; \
-    } | grep -oP '/usr/lib/\S+' | sort -u | \
+    } | grep -oP '(?:/usr/lib|/lib)/\S+' | sort -u | \
     xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true
 
 # ---- Main workspace image ----
@@ -124,10 +124,9 @@ RUN set -e; for v in 8.1 8.2 8.3 8.4 8.5; do \
 COPY php-wrapper.sh /usr/local/bin/php
 RUN chmod +x /usr/local/bin/php
 
-# Composer (installed once, uses default PHP)
-RUN LD_LIBRARY_PATH="/opt/php/8.4/lib" /opt/php/8.4/bin/php -r "copy('https://getcomposer.org/installer', '/tmp/composer-setup.php');" && \
-    LD_LIBRARY_PATH="/opt/php/8.4/lib" /opt/php/8.4/bin/php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer && \
-    rm /tmp/composer-setup.php
+# Composer (download phar directly — avoids running PHP during build)
+RUN curl -fsSL https://getcomposer.org/download/latest-stable/composer.phar -o /usr/local/bin/composer && \
+    chmod +x /usr/local/bin/composer
 
 # --------------------------------------------------
 # Node.js
