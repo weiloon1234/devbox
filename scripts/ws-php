@@ -14,7 +14,7 @@ CMD=("$@")
 
 # read .php-version via workspace container (source of truth)
 VERSION="$(docker exec "ws-$WS" bash -lc "cat /workspace/projects/$PROJECT/.php-version 2>/dev/null || true" | tr -d '\r' | xargs || true)"
-[[ -n "$VERSION" ]] || VERSION="8.3"
+[[ -n "$VERSION" ]] || VERSION="8.4"
 
 case "$VERSION" in
   8.1) PHP_CONT="ws-$WS-php81" ;;

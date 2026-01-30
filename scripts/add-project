@@ -127,9 +127,9 @@ CONFIRM="$(lower "$CONFIRM")"
 # Determine PHP upstream if needed
 PHP_UPSTREAM=""
 if [[ "$TYPE" == "laravel" || "$TYPE" == "php" ]]; then
-  # Read .php-version from project root (default 8.3)
+  # Read .php-version from project root (default 8.4)
   PHP_VERSION="$(docker exec "ws-$WS" bash -lc "cat '$REMOTE_PROJECT_DIR/.php-version' 2>/dev/null || true" | tr -d '\r' | xargs || true)"
-  [[ -n "$PHP_VERSION" ]] || PHP_VERSION="8.3"
+  [[ -n "$PHP_VERSION" ]] || PHP_VERSION="8.4"
 
   case "$PHP_VERSION" in
     8.1) PHP_UPSTREAM="ws-$WS-php81" ;;
