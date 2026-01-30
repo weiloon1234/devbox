@@ -18,8 +18,8 @@ services:
 
     volumes:
       - __CODE_VOLUME__:/workspace
-      - ../../keys/__PUBKEY_FILE__:/seed/authorized_keys:ro
-      - ../../keys/__PRIVKEY_FILE__:/seed/id_key:ro
+      - ../../../keys/__PUBKEY_FILE__:/seed/authorized_keys:ro
+      - ../../../keys/__PRIVKEY_FILE__:/seed/id_key:ro
       - ./bootstrap.sh:/bootstrap.sh:ro
 
     networks:
