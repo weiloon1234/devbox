@@ -69,7 +69,7 @@ docker compose -f "$ROOT/db/docker-compose.yml" up -d
 
 echo "[devbox] building php images..."
 for v in 8.1 8.2 8.3 8.4 8.5; do
-  docker build -t "devbox-php:${v}" "$ROOT/images/php/${v}"
+  docker build -t "devbox-php:${v}" -f "$ROOT/images/php/${v}/Dockerfile" "$ROOT/images/php"
 done
 
 echo "[devbox] building workspace image..."

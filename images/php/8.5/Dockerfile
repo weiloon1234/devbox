@@ -10,5 +10,7 @@ RUN if command -v install-php-extensions >/dev/null 2>&1; then \
       echo "install-php-extensions not found in serversideup/php image"; exit 1; \
     fi
 
+COPY php-dev.ini /usr/local/etc/php/conf.d/zz-dev.ini
+
 WORKDIR /workspace
 USER www-data

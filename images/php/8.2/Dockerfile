@@ -26,5 +26,7 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
 RUN pecl install redis imagick \
   && docker-php-ext-enable redis imagick
 
+COPY php-dev.ini /usr/local/etc/php/conf.d/zz-dev.ini
+
 WORKDIR /workspace
 USER www-data
