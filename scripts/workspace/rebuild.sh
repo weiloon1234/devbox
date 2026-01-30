@@ -31,6 +31,10 @@ done
 
 docker info >/dev/null 2>&1 || fail "Docker daemon not reachable. Start Docker Desktop."
 
+# Sync AI tool seeds before rebuild
+"$ROOT/scripts/core/sync-seeds.sh"
+echo
+
 # ── Rebuild PHP images ──
 echo "[devbox] rebuilding php images..."
 for v in 8.1 8.2 8.3 8.4 8.5; do

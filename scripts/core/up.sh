@@ -14,6 +14,10 @@ fail(){ echo "ERROR: $*" >&2; exit 1; }
 ok(){ echo "✅ $*"; }
 warn(){ echo "⚠️  $*"; }
 
+# Sync AI tool seeds before starting workspaces
+"$ROOT/scripts/core/sync-seeds.sh"
+echo
+
 # Start core infrastructure
 ok "Starting proxy..."
 docker compose -f "$ROOT/proxy/docker-compose.yml" up -d

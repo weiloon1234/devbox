@@ -61,20 +61,50 @@ else
   log "WARNING: no private key at $KEY_SRC — git push/pull over SSH will not work"
 fi
 
-# ── AI tool auth seeding (optional, from /seed/ai/) ──
-seed_ai_file() {
-  local src="$1" dest_dir="$2" dest_file="$3"
+# ── AI tool config seeding (optional, from /seed/ai/) ──
+seed_file() {
+  local src="$1" dest="$2"
   if [[ -f "$src" ]]; then
+    local dest_dir; dest_dir="$(dirname "$dest")"
     install -d -m 700 -o "$DEV_USER" -g "$DEV_USER" "$dest_dir"
-    install -m 600 -o "$DEV_USER" -g "$DEV_USER" "$src" "$dest_dir/$dest_file"
-    log "seeded $dest_file"
+    install -m 600 -o "$DEV_USER" -g "$DEV_USER" "$src" "$dest"
+    log "seeded $(basename "$dest")"
   fi
 }
 
-seed_ai_file /seed/ai/codex-auth.json       "$DEV_HOME/.codex"   auth.json
-seed_ai_file /seed/ai/claude-credentials.json "$DEV_HOME/.claude" credentials.json
-seed_ai_file /seed/ai/gemini-oauth.json      "$DEV_HOME/.gemini"  oauth_creds.json
-seed_ai_file /seed/ai/opencode-auth.json     "$DEV_HOME/.opencode" auth.json
+seed_dir() {
+  local src="$1" dest="$2"
+  if [[ -d "$src" ]] && [[ -n "$(ls -A "$src" 2>/dev/null)" ]]; then
+    local parent; parent="$(dirname "$dest")"
+    install -d -m 700 -o "$DEV_USER" -g "$DEV_USER" "$parent"
+    cp -a "$src" "$dest"
+    chown -R "$DEV_USER:$DEV_USER" "$dest"
+    log "seeded $(basename "$dest")/"
+  fi
+}
+
+# Claude Code
+seed_file /seed/ai/claude/credentials.json "$DEV_HOME/.claude/credentials.json"
+seed_file /seed/ai/claude/settings.json    "$DEV_HOME/.claude/settings.json"
+seed_dir  /seed/ai/claude/agents           "$DEV_HOME/.claude/agents"
+seed_dir  /seed/ai/claude/skills           "$DEV_HOME/.claude/skills"
+seed_dir  /seed/ai/claude/plugins          "$DEV_HOME/.claude/plugins"
+
+# Codex
+seed_file /seed/ai/codex/auth.json    "$DEV_HOME/.codex/auth.json"
+seed_file /seed/ai/codex/config.toml  "$DEV_HOME/.codex/config.toml"
+seed_dir  /seed/ai/codex/rules        "$DEV_HOME/.codex/rules"
+seed_dir  /seed/ai/codex/skills       "$DEV_HOME/.codex/skills"
+
+# Gemini CLI
+seed_file /seed/ai/gemini/oauth_creds.json    "$DEV_HOME/.gemini/oauth_creds.json"
+seed_file /seed/ai/gemini/settings.json       "$DEV_HOME/.gemini/settings.json"
+seed_file /seed/ai/gemini/google_accounts.json "$DEV_HOME/.gemini/google_accounts.json"
+seed_file /seed/ai/gemini/google_account_id   "$DEV_HOME/.gemini/google_account_id"
+seed_file /seed/ai/gemini/GEMINI.md           "$DEV_HOME/.gemini/GEMINI.md"
+
+# OpenCode
+seed_file /seed/ai/opencode/auth.json "$DEV_HOME/.opencode/auth.json"
 
 # Ensure sshd runtime dir
 mkdir -p /run/sshd
