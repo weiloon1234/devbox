@@ -10,13 +10,13 @@ ok()   { echo "✅ $*"; }
 warn() { echo "⚠️  $*"; }
 
 WS="${1:-}"
-[[ -n "$WS" ]] || fail "usage: ws-delete <workspace>"
+[[ -n "$WS" ]] || fail "usage: devbox workspace delete <workspace>"
 
 WS_DIR="$GEN/$WS"
 COMPOSE="$WS_DIR/docker-compose.yml"
 MOUNT_POINT="$MOUNT_BASE/$WS"
 
-echo "=== devbox ws-delete ==="
+echo "=== devbox workspace delete ==="
 echo "Workspace: $WS"
 echo
 

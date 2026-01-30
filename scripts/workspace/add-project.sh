@@ -21,7 +21,7 @@ prompt() {
 
 lower() { echo "$1" | tr '[:upper:]' '[:lower:]'; }
 
-echo "=== devbox add-project (mode 1) ==="
+echo "=== devbox workspace add-project ==="
 
 # Workspace selection
 prompt WS "Workspace name (example: personal/private)" ""

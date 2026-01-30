@@ -50,7 +50,7 @@ need_file "$TPL_DIR/docker-compose.yml.tpl"
 need_file "$TPL_DIR/bootstrap.sh.tpl"
 need_file "$TPL_DIR/nginx.conf.tpl"
 
-echo "=== devbox workspace-new ==="
+echo "=== devbox workspace new ==="
 
 prompt WS_NAME "Workspace name (lowercase, e.g. personal/private/client1)" ""
 [[ -n "$WS_NAME" ]] || fail "workspace name is required"

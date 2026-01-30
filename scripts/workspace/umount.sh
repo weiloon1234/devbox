@@ -4,7 +4,7 @@ set -euo pipefail
 fail(){ echo "ERROR: $*" >&2; exit 1; }
 
 WS="${1:-}"
-[[ -n "$WS" ]] || fail "usage: ws-umount <workspace>"
+[[ -n "$WS" ]] || fail "usage: devbox workspace umount <workspace>"
 
 MOUNT_BASE="${DEVBOX_MOUNT_BASE:-$HOME/DevboxMount}"
 MOUNT_POINT="$MOUNT_BASE/$WS"

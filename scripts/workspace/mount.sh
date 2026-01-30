@@ -9,7 +9,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 [[ "${DEVBOX_MOUNT_BASE:-$HOME/DevboxMount}" == "$HOME/"* ]] || fail "DEVBOX_MOUNT_BASE must live under \$HOME"
 
 WS="${1:-}"
-[[ -n "$WS" ]] || fail "usage: ws-mount <workspace>"
+[[ -n "$WS" ]] || fail "usage: devbox workspace mount <workspace>"
 
 source "$ROOT/scripts/lib/ws-meta.sh"
 ws_load_meta "$WS"
