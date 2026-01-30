@@ -36,7 +36,7 @@ if [[ ! -f "$CERT_PEM" || ! -f "$CERT_KEY" ]]; then
   (cd "$CERT_DIR" && mkcert \
     -cert-file local.pem \
     -key-file local-key.pem \
-    "*.test" \
+    "*.test" "*.*.test" \
     "localhost" "127.0.0.1" "::1"
   )
 else

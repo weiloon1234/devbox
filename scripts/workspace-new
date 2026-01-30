@@ -61,9 +61,12 @@ prompt SSH_PORT "SSH port to expose on localhost" "$DEFAULT_PORT"
 [[ "$SSH_PORT" =~ ^[0-9]+$ ]] || fail "SSH port must be a number"
 port_free "$SSH_PORT" || fail "port $SSH_PORT is already in use"
 
-DEFAULT_PUBKEY="${WS_NAME}_id_ed25519.pub"
-prompt PUBKEY_FILE "Public key filename under devbox/keys/" "$DEFAULT_PUBKEY"
+DEFAULT_KEYNAME="devbox_${WS_NAME}_ed25519"
+prompt KEYNAME "SSH key name under devbox/keys/ (without .pub)" "$DEFAULT_KEYNAME"
+PUBKEY_FILE="${KEYNAME}.pub"
+PRIVKEY_FILE="$KEYNAME"
 need_file "$KEYS_DIR/$PUBKEY_FILE"
+need_file "$KEYS_DIR/$PRIVKEY_FILE"
 
 WS_DIR="$OUT_ROOT/$WS_NAME"
 COMPOSE_OUT="$WS_DIR/docker-compose.yml"
@@ -85,6 +88,7 @@ sed \
   -e "s/__WS_NAME__/${WS_NAME}/g" \
   -e "s/__SSH_PORT__/${SSH_PORT}/g" \
   -e "s/__PUBKEY_FILE__/${PUBKEY_FILE//\//\\/}/g" \
+  -e "s/__PRIVKEY_FILE__/${PRIVKEY_FILE//\//\\/}/g" \
   -e "s/__CODE_VOLUME__/${CODE_VOLUME}/g" \
   "$TPL_DIR/docker-compose.yml.tpl" > "$COMPOSE_OUT"
 
@@ -102,6 +106,7 @@ cat > "$WS_DIR/ws.env" <<EOF
 WS_NAME=$WS_NAME
 SSH_PORT=$SSH_PORT
 PUBKEY_FILE=$PUBKEY_FILE
+PRIVKEY_FILE=$PRIVKEY_FILE
 GIT_NAME=$GIT_NAME
 GIT_EMAIL=$GIT_EMAIL
 EOF

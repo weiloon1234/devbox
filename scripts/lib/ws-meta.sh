@@ -37,8 +37,9 @@ ws_load_meta() {
     return 1
   fi
 
-  # Derive private key path from pubkey filename
-  WS_PRIVKEY="$HOME/.ssh/${PUBKEY_FILE%.pub}"
+  # Derive private key paths (keys/ dir and ~/.ssh fallback)
+  PRIVKEY_FILE="${PRIVKEY_FILE:-${PUBKEY_FILE%.pub}}"
+  WS_PRIVKEY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/keys/$PRIVKEY_FILE"
 
-  export WS_NAME SSH_PORT PUBKEY_FILE WS_PRIVKEY GIT_NAME GIT_EMAIL
+  export WS_NAME SSH_PORT PUBKEY_FILE PRIVKEY_FILE WS_PRIVKEY GIT_NAME GIT_EMAIL
 }

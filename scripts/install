@@ -188,14 +188,14 @@ ensure_local_tls() {
     return 0
   fi
 
-  echo "[install] generating wildcard TLS cert for *.test ..."
+  echo "[install] generating wildcard TLS cert for *.test + *.*.test ..."
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    echo "[dry-run] mkcert -cert-file \"$crt\" -key-file \"$key\" \"*.test\" \"localhost\" \"127.0.0.1\""
+    echo "[dry-run] mkcert -cert-file \"$crt\" -key-file \"$key\" \"*.test\" \"*.*.test\" \"localhost\" \"127.0.0.1\""
   else
     mkcert \
       -cert-file "$crt" \
       -key-file "$key" \
-      "*.test" \
+      "*.test" "*.*.test" \
       "localhost" \
       "127.0.0.1" >/dev/null
   fi
