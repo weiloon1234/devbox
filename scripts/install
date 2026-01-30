@@ -187,7 +187,15 @@ ensure_local_tls() {
 # ----------------------------
 ensure_sshfs() {
   ensure_brew_cask macfuse
-  ensure_brew_pkg sshfs
+
+  # sshfs on macOS: use sshfs-mac tap (brew sshfs is linux-only)
+  if command -v sshfs >/dev/null 2>&1; then
+    echo "[install] sshfs already installed"
+  else
+    echo "[install] Installing sshfs-mac..."
+    run "brew tap gromgit/fuse"
+    run "brew install gromgit/fuse/sshfs-mac"
+  fi
 
   echo "[install] macFUSE + sshfs installed."
   echo "[install] If sshfs fails later, reboot macOS once (macFUSE sometimes needs it)."
