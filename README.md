@@ -94,17 +94,19 @@ devbox/
 ├─ generated/                   # LOCAL ONLY (gitignored)
 │  └─ workspaces/
 └─ scripts/
-   ├─ install
-   ├─ bootstrap
-   ├─ reset
-   ├─ workspace-new
-   ├─ add-project
-   ├─ ws-list
-   ├─ ws-ssh
-   ├─ ws-php
-   ├─ db-mysql
-   ├─ db-psql
-   └─ db-redis
+   ├─ devbox.sh              # CLI router (single entrypoint)
+   ├─ lib/
+   │  └─ ws-meta.sh          # shared helper
+   ├─ core/
+   │  ├─ up.sh, down.sh, bootstrap.sh, install.sh
+   │  ├─ refresh.sh, fresh.sh, reset.sh
+   │  ├─ doctor.sh, tls-status.sh
+   ├─ workspace/
+   │  ├─ new.sh, list.sh, ssh.sh, php.sh, delete.sh
+   │  ├─ add-project.sh, mount.sh, umount.sh
+   │  ├─ mount-all.sh, umount-all.sh, nginx-reload.sh
+   └─ db/
+      ├─ mysql.sh, psql.sh, redis.sh
 ```
 
 ---
@@ -180,11 +182,11 @@ cd devbox
 ls keys/*.pub
 
 # install helper commands
-./scripts/install
+./scripts/devbox.sh install
 source ~/.zshrc
 
 # build images + start infra
-devbox-bootstrap
+devbox bootstrap
 ```
 
 Result:
@@ -198,7 +200,7 @@ Result:
 ## Create a workspace
 
 ```bash
-devbox-ws-new
+devbox workspace new
 ```
 
 You will be prompted for:
@@ -212,8 +214,8 @@ You will be prompted for:
 ## List / access workspaces
 
 ```bash
-devbox-ws-list
-devbox-ws-ssh personal
+devbox workspace list
+devbox workspace ssh personal
 ```
 
 ---
@@ -221,7 +223,7 @@ devbox-ws-ssh personal
 ## Add a project (interactive)
 
 ```bash
-devbox-add-project
+devbox workspace add-project
 ```
 
 Supported project types:
@@ -266,9 +268,9 @@ Nginx routes to the correct PHP‑FPM container automatically.
 From macOS:
 
 ```bash
-devbox-db-mysql
-devbox-db-psql
-devbox-db-redis
+devbox db mysql
+devbox db psql
+devbox db redis
 ```
 
 Inside containers:
@@ -294,7 +296,7 @@ This avoids SDK conflicts and keeps builds fast.
 ## Reset EVERYTHING (danger)
 
 ```bash
-devbox-reset
+devbox reset
 ```
 
 This:

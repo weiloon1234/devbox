@@ -86,7 +86,7 @@ devbox is designed under the assumption that:
 
 ## Reset as a Security Control
 
-`devbox-reset`:
+`devbox reset`:
 
 - Stops all containers
 - Deletes all workspace volumes

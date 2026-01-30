@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GEN="$ROOT/generated/workspaces"
 
 [[ -d "$GEN" ]] || { echo "(no generated workspaces)"; exit 0; }
@@ -10,6 +10,6 @@ shopt -s nullglob
 for d in "$GEN"/*; do
   [[ -d "$d" ]] || continue
   ws="$(basename "$d")"
-  "$ROOT/scripts/ws-umount" "$ws" || true
+  "$ROOT/scripts/workspace/umount.sh" "$ws" || true
 done
 shopt -u nullglob

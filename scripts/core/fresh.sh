@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GEN="$ROOT/generated/workspaces"
 
 ok(){ echo "✅ $*"; }
@@ -67,4 +67,4 @@ else
 fi
 
 echo
-echo "Next: ./scripts/refresh"
+echo "Next: devbox refresh"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 fail(){ echo "ERROR: $*" >&2; exit 1; }
 
@@ -30,7 +30,7 @@ WS="$(lower "$WS")"
 
 # Validate workspace exists
 COMPOSE="$ROOT/generated/workspaces/$WS/docker-compose.yml"
-[[ -f "$COMPOSE" ]] || fail "workspace not found: generated/workspaces/$WS (run devbox-ws-new first)"
+[[ -f "$COMPOSE" ]] || fail "workspace not found: generated/workspaces/$WS (run devbox workspace new first)"
 
 # Domain
 prompt DOMAIN "Domain (example: api.${WS}.test)" ""

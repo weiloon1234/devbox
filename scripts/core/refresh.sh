@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GEN="$ROOT/generated/workspaces"
 
 ok(){ echo "✅ $*"; }
@@ -68,7 +68,7 @@ fi
 
 if [[ "$SKIP_BOOTSTRAP" -eq 0 ]]; then
   ok "Starting core infra via scripts/bootstrap..."
-  "$ROOT/scripts/bootstrap"
+  "$ROOT/scripts/core/bootstrap.sh"
 else
   warn "Skipping bootstrap (--skip-bootstrap)"
 fi
@@ -82,4 +82,4 @@ if [[ -d "$GEN" ]]; then
   shopt -u nullglob
 fi
 
-ok "Done. Try: devbox-ws-ssh <workspace>"
+ok "Done. Try: devbox workspace ssh <workspace>"

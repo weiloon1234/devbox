@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 fail() { echo "ERROR: $*" >&2; exit 1; }
 need_cmd() { command -v "$1" >/dev/null 2>&1 || fail "missing required command: $1"; }
@@ -92,4 +92,4 @@ echo "[devbox] bootstrap complete."
 echo "[devbox] workspaces started: $STARTED"
 echo
 echo "Tip: create a workspace with:"
-echo "  ./scripts/workspace-new"
+echo "  devbox workspace new"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GEN="$ROOT/generated/workspaces"
 
 fail(){ echo "ERROR: $*" >&2; exit 1; }
@@ -14,6 +14,6 @@ shopt -s nullglob
 for d in "$GEN"/*; do
   [[ -d "$d" ]] || continue
   ws="$(basename "$d")"
-  "$ROOT/scripts/ws-mount" "$ws" || true
+  "$ROOT/scripts/workspace/mount.sh" "$ws" || true
 done
 shopt -u nullglob

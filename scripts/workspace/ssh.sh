@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 fail() { echo "ERROR: $*" >&2; exit 1; }
 
 WS_NAME="${1:-}"
-[[ -n "$WS_NAME" ]] || fail "usage: devbox-ws-ssh <workspace-name>"
+[[ -n "$WS_NAME" ]] || fail "usage: devbox workspace ssh <workspace-name>"
 
 source "$ROOT/scripts/lib/ws-meta.sh"
 ws_load_meta "$WS_NAME"

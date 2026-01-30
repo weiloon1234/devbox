@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GEN="$ROOT/generated/workspaces"
 MOUNT_BASE="${DEVBOX_MOUNT_BASE:-$HOME/DevboxMount}"
 
@@ -62,7 +62,7 @@ KEY="$ROOT/proxy/certs/local.test.key"
 if [[ -f "$CRT" && -f "$KEY" ]]; then
   ok "TLS cert present: proxy/certs/local.test.(crt|key)"
 else
-  warn "TLS cert missing (re-run ./scripts/install to auto-generate)"
+  warn "TLS cert missing (re-run devbox install to auto-generate)"
 fi
 
 # DNS wildcard (.test) (global, once)
@@ -98,8 +98,8 @@ fi
 echo
 echo "--- Docker networks ---"
 if [[ "$DOCKER_OK" -eq 1 ]]; then
-  if docker network inspect proxy >/dev/null 2>&1; then ok "network: proxy"; else warn "network missing: proxy (run devbox-bootstrap)"; fi
-  if docker network inspect devbox >/dev/null 2>&1; then ok "network: devbox"; else warn "network missing: devbox (run devbox-bootstrap)"; fi
+  if docker network inspect proxy >/dev/null 2>&1; then ok "network: proxy"; else warn "network missing: proxy (run devbox bootstrap)"; fi
+  if docker network inspect devbox >/dev/null 2>&1; then ok "network: devbox"; else warn "network missing: devbox (run devbox bootstrap)"; fi
 else
   warn "skipping network checks (docker not running)"
 fi
@@ -124,7 +124,7 @@ echo
 echo "--- Workspaces ---"
 if [[ ! -d "$GEN" ]]; then
   warn "no generated/workspaces folder (expected if none created yet)"
-  echo "Create one with: devbox-ws-new"
+  echo "Create one with: devbox workspace new"
   echo "=== doctor done ==="
   exit 0
 fi
@@ -178,7 +178,7 @@ for wsdir in "$GEN"/*; do
   if [[ -d "$mp" ]] && mount | grep -q "on ${mp} "; then
     ok "  mounted: $mp"
   else
-    warn "  not mounted: $mp (use: devbox-mount $ws)"
+    warn "  not mounted: $mp (use: devbox workspace mount $ws)"
   fi
 
   echo
@@ -187,7 +187,7 @@ shopt -u nullglob
 
 if [[ $ws_count -eq 0 ]]; then
   warn "no workspaces found under generated/workspaces"
-  echo "Create one with: devbox-ws-new"
+  echo "Create one with: devbox workspace new"
 fi
 
 echo "=== doctor done ==="

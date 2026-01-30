@@ -62,7 +62,7 @@ All on a shared Docker network (`devbox`).
 
 ## Workspace Lifecycle
 
-1. `devbox-ws-new`
+1. `devbox workspace new`
 2. Docker volumes created
 3. SSH seeded
 4. Containers started

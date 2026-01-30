@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CERT_DIR="$ROOT/proxy/certs"
 CRT="$CERT_DIR/local.test.crt"
 KEY="$CERT_DIR/local.test.key"
@@ -20,5 +20,5 @@ if [[ -f "$CRT" && -f "$KEY" ]]; then
   echo " - $KEY"
 else
   echo "TLS cert: MISSING"
-  echo "Run: ./scripts/install (will auto-generate)"
+  echo "Run: devbox install (will auto-generate)"
 fi

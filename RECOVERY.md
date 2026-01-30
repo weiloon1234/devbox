@@ -50,7 +50,7 @@ devbox/keys/
 ### 4. Install helper commands (1 minute)
 
 ```bash
-./scripts/install
+./scripts/devbox.sh install
 source ~/.zshrc
 ```
 
@@ -59,7 +59,7 @@ source ~/.zshrc
 ### 5. Bootstrap infrastructure (2 minutes)
 
 ```bash
-devbox-bootstrap
+devbox bootstrap
 ```
 
 This will:
@@ -73,7 +73,7 @@ This will:
 ### 6. Recreate workspaces (optional)
 
 ```bash
-devbox-ws-new
+devbox workspace new
 ```
 
 Each workspace starts empty by design.
@@ -98,7 +98,7 @@ If recovery takes longer than 10 minutes, the design failed.
 Local HTTPS certificates are generated automatically during:
 
 ```bash
-./scripts/install
+./scripts/devbox.sh install
 ```
 
-If certificates are deleted, re-running the install script will regenerate them.
+If certificates are deleted, re-running `devbox install` will regenerate them.

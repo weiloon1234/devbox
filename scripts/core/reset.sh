@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 echo "[devbox] stopping generated workspaces..."
 GEN_ROOT="$ROOT/generated/workspaces"
@@ -32,5 +32,5 @@ docker volume rm -f devbox_mysql devbox_pg devbox_redis 2>/dev/null || true
 
 echo "[devbox] reset complete."
 echo "Next:"
-echo "  ./scripts/bootstrap"
-echo "  ./scripts/workspace-new"
+echo "  devbox bootstrap"
+echo "  devbox workspace new"

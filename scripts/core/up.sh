@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GEN="$ROOT/generated/workspaces"
 MOUNT_BASE="${DEVBOX_MOUNT_BASE:-$HOME/DevboxMount}"
 
@@ -24,7 +24,7 @@ docker compose -f "$ROOT/db/docker-compose.yml" up -d
 # Start workspaces
 if [[ ! -d "$GEN" ]]; then
   warn "No generated workspaces folder: $GEN"
-  warn "Create a workspace first: devbox-ws-new"
+  warn "Create a workspace first: devbox workspace new"
   exit 0
 fi
 
@@ -34,7 +34,7 @@ shopt -u nullglob
 
 if [[ ${#WS_DIRS[@]} -eq 0 ]]; then
   warn "No workspaces found under: $GEN"
-  warn "Create one: devbox-ws-new"
+  warn "Create one: devbox workspace new"
   exit 0
 fi
 
@@ -56,6 +56,6 @@ if [[ "$NO_MOUNT" -eq 1 ]]; then
   exit 0
 fi
 
-"$ROOT/scripts/ws-mount-all"
+"$ROOT/scripts/workspace/mount-all.sh"
 
 ok "All done. Open Finder: $MOUNT_BASE"

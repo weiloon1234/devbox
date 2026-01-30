@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 TPL_DIR="$ROOT/templates/workspace"
 OUT_ROOT="$ROOT/generated/workspaces"
@@ -144,10 +144,10 @@ esac
 
 # Ensure networks exist (proxy + devbox)
 if ! docker network inspect proxy >/dev/null 2>&1; then
-  fail "docker network 'proxy' missing. Run ./scripts/bootstrap first."
+  fail "docker network 'proxy' missing. Run devbox bootstrap first."
 fi
 if ! docker network inspect devbox >/dev/null 2>&1; then
-  fail "docker network 'devbox' missing. Run ./scripts/bootstrap first."
+  fail "docker network 'devbox' missing. Run devbox bootstrap first."
 fi
 
 docker compose -f "$COMPOSE_OUT" up -d

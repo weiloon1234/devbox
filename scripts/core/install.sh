@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 fail(){ echo "ERROR: $*" >&2; exit 1; }
 
@@ -13,7 +13,7 @@ for arg in "${@:-}"; do
   case "$arg" in
     --dry-run|-n) DRY_RUN=1 ;;
     --help|-h)
-      echo "usage: ./scripts/install [--dry-run|-n]"
+      echo "usage: ./scripts/devbox.sh install [--dry-run|-n]"
       exit 0
       ;;
   esac
@@ -91,7 +91,7 @@ ensure_homebrew() {
   fi
   echo "[install] Homebrew not found."
   echo "Install it from: https://brew.sh"
-  echo "Then re-run: ./scripts/install"
+  echo "Then re-run: ./scripts/devbox.sh install"
   exit 1
 }
 
@@ -149,7 +149,7 @@ ensure_docker_desktop() {
   echo "IMPORTANT:"
   echo "→ Open Docker.app manually once"
   echo "→ Complete initial setup"
-  echo "→ Re-run: devbox-bootstrap"
+  echo "→ Re-run: devbox bootstrap"
 }
 
 # ----------------------------
@@ -327,31 +327,28 @@ ensure_local_tls
 ensure_sshfs
 ensure_docker_desktop
 
-# Wrappers
-install_cmd devbox-bootstrap scripts/bootstrap
-install_cmd devbox-reset scripts/reset
-install_cmd devbox-ws-new scripts/workspace-new
-install_cmd devbox-ws-list scripts/ws-list
-install_cmd devbox-ws-ssh scripts/ws-ssh
-install_cmd devbox-ws-php scripts/ws-php
-install_cmd devbox-ws-delete scripts/ws-delete
-install_cmd devbox-add-project scripts/add-project
-install_cmd devbox-db-mysql scripts/db-mysql
-install_cmd devbox-db-psql scripts/db-psql
-install_cmd devbox-db-redis scripts/db-redis
-install_cmd devbox-tls-status scripts/tls-status
-install_cmd devbox-up scripts/up
-install_cmd devbox-down scripts/down
+# Single CLI wrapper
+install_cmd devbox scripts/devbox.sh
 
-# Mount helpers
-install_cmd devbox-mount scripts/ws-mount
-install_cmd devbox-umount scripts/ws-umount
-install_cmd devbox-mount-all scripts/ws-mount-all
-install_cmd devbox-umount-all scripts/ws-umount-all
-
-install_cmd devbox-doctor scripts/doctor
-install_cmd devbox-refresh scripts/refresh
-install_cmd devbox-fresh scripts/fresh
+# Remove legacy devbox-* wrappers from ~/bin/
+LEGACY_CMDS=(
+  devbox-bootstrap devbox-reset devbox-ws-new devbox-ws-list
+  devbox-ws-ssh devbox-ws-php devbox-ws-delete devbox-add-project
+  devbox-db-mysql devbox-db-psql devbox-db-redis devbox-tls-status
+  devbox-up devbox-down devbox-mount devbox-umount
+  devbox-mount-all devbox-umount-all devbox-doctor devbox-refresh
+  devbox-fresh
+)
+for old in "${LEGACY_CMDS[@]}"; do
+  if [[ -f "$BIN_DIR/$old" ]]; then
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "[dry-run] remove legacy wrapper: $BIN_DIR/$old"
+    else
+      rm -f "$BIN_DIR/$old"
+      echo "[install] Removed legacy wrapper: $old"
+    fi
+  fi
+done
 
 echo
 echo "[install] Done."
@@ -363,6 +360,6 @@ else
 fi
 echo
 echo "Next:"
-echo "  devbox-bootstrap"
-echo "  devbox-ws-new"
-echo "  devbox-mount <workspace>"
+echo "  devbox bootstrap"
+echo "  devbox workspace new"
+echo "  devbox workspace mount <workspace>"

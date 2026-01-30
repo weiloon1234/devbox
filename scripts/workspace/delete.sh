@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GEN="$ROOT/generated/workspaces"
 MOUNT_BASE="${DEVBOX_MOUNT_BASE:-$HOME/DevboxMount}"
 
@@ -51,4 +51,4 @@ fi
 echo
 ok "Workspace '$WS' deleted."
 echo "You can recreate it with:"
-echo "  devbox-ws-new"
+echo "  devbox workspace new"

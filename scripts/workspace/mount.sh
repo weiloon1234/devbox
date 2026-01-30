@@ -4,7 +4,7 @@ set -euo pipefail
 fail(){ echo "ERROR: $*" >&2; exit 1; }
 ok(){ echo "✅ $*"; }
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 [[ "${DEVBOX_MOUNT_BASE:-$HOME/DevboxMount}" == "$HOME/"* ]] || fail "DEVBOX_MOUNT_BASE must live under \$HOME"
 

@@ -7,7 +7,7 @@ WS="${1:-}"
 PROJECT="${2:-}"
 shift 2 || true
 
-[[ -n "$WS" && -n "$PROJECT" ]] || fail "usage: ./scripts/ws-php <workspace> <project> <command...>"
+[[ -n "$WS" && -n "$PROJECT" ]] || fail "usage: devbox workspace php <workspace> <project> <command...>"
 
 CMD=("$@")
 [[ ${#CMD[@]} -gt 0 ]] || fail "missing command (example: php -v, composer install, php artisan migrate)"
