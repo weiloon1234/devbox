@@ -121,6 +121,10 @@ seed_file /seed/ai/gemini/GEMINI.md           "$DEV_HOME/.gemini/GEMINI.md"
 seed_file /seed/ai/opencode/auth.json "$DEV_HOME/.local/share/opencode/auth.json"
 seed_dir  /seed/ai/opencode/config    "$DEV_HOME/.config/opencode"
 
+# GitHub Copilot (auth in ~/.config/github-copilot/)
+seed_file /seed/ai/github-copilot/apps.json    "$DEV_HOME/.config/github-copilot/apps.json"
+seed_file /seed/ai/github-copilot/versions.json "$DEV_HOME/.config/github-copilot/versions.json"
+
 # ── Git defaults ──
 su "$DEV_USER" -c 'git config --global init.defaultBranch main'
 su "$DEV_USER" -c 'git config --global user.name "__GIT_NAME__"'
@@ -139,10 +143,11 @@ chown -h "$DEV_USER:$DEV_USER" "$DEV_HOME/projects"
 # JetBrains Gateway stores backend at ~/.cache/JetBrains/ (~910MB)
 # VS Code Remote stores server at ~/.vscode-server/
 IDE_CACHE="/workspace/.ide-cache"
-mkdir -p "$IDE_CACHE/cache-jetbrains" "$IDE_CACHE/config-jetbrains" "$IDE_CACHE/vscode-server"
-mkdir -p "$DEV_HOME/.cache" "$DEV_HOME/.config"
+mkdir -p "$IDE_CACHE/cache-jetbrains" "$IDE_CACHE/config-jetbrains" "$IDE_CACHE/share-jetbrains" "$IDE_CACHE/vscode-server"
+mkdir -p "$DEV_HOME/.cache" "$DEV_HOME/.config" "$DEV_HOME/.local/share"
 # Remove real dirs before symlinking (ln -sfn won't replace a directory)
-for pair in ".cache/JetBrains:cache-jetbrains" ".config/JetBrains:config-jetbrains" ".vscode-server:vscode-server"; do
+# .local/share/JetBrains = plugins (e.g. GitHub Copilot)
+for pair in ".cache/JetBrains:cache-jetbrains" ".config/JetBrains:config-jetbrains" ".local/share/JetBrains:share-jetbrains" ".vscode-server:vscode-server"; do
   rel="${pair%%:*}" name="${pair##*:}"
   target="$DEV_HOME/$rel"
   # If it's a real directory (not already a symlink), migrate contents then remove

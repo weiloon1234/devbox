@@ -115,5 +115,12 @@ if [[ -d "$HOME/.config/opencode" ]]; then
 fi
 echo
 
+# ── GitHub Copilot ─────────────────────────────────────
+echo "GitHub Copilot:"
+mkdir -p "$SEEDS/github-copilot"
+sync_file "$HOME/.config/github-copilot/apps.json"     "$SEEDS/github-copilot/apps.json"     "auth (apps.json)"
+sync_file "$HOME/.config/github-copilot/versions.json"  "$SEEDS/github-copilot/versions.json"  "versions"
+echo
+
 echo "Seeds dir: $SEEDS"
 find "$SEEDS" -type f | sort
