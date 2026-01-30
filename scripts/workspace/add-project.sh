@@ -227,6 +227,11 @@ esac
 docker exec "ws-$WS-nginx" nginx -s reload
 
 echo "OK:"
+echo " - created:    $REMOTE_PROJECT_DIR"
 echo " - wrote stub: $REMOTE_STUB_PATH"
 echo " - reloaded:   ws-$WS-nginx"
-echo "Open: https://$DOMAIN"
+echo
+echo "Access:"
+echo "  SSH:    devbox workspace ssh $WS  →  cd projects/$PROJECT"
+echo "  Finder: ~/DevboxMount/$WS/projects/$PROJECT"
+echo "  URL:    https://$DOMAIN"

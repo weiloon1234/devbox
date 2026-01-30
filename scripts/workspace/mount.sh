@@ -33,7 +33,8 @@ echo "[mount] mounting ws-$WS (/workspace) -> $MOUNT_POINT (key: $WS_PRIVKEY)"
 sshfs -p "$SSH_PORT" ubuntu@127.0.0.1:/workspace "$MOUNT_POINT" \
   -o IdentityFile="$WS_PRIVKEY" \
   -o IdentitiesOnly=yes \
+  -o StrictHostKeyChecking=no \
+  -o UserKnownHostsFile=/dev/null \
   -o reconnect \
-  -o follow_symlinks \
-  -o defer_permissions \
+  -o cache=no \
   -o volname="devbox-$WS"

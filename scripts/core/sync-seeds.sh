@@ -35,20 +35,21 @@ echo "=== devbox sync-seeds ==="
 echo "Syncing AI tool config from host → seeds/"
 echo
 
-# ── Claude Code ──────────────────────────────────────────
+# ── Claude Code (native binary) ──────────────────────────
 echo "Claude Code:"
 mkdir -p "$SEEDS/claude"
 
-# Auth: macOS Keychain or Linux file
-if [[ -f "$HOME/.claude/credentials.json" ]]; then
-  cp "$HOME/.claude/credentials.json" "$SEEDS/claude/credentials.json"
-  chmod 600 "$SEEDS/claude/credentials.json"
-  ok "auth (from credentials file)"
+# Auth: native binary uses ~/.config/claude-code/auth.json on Linux
+# On macOS, stored in Keychain under "Claude Code-credentials"
+if [[ -f "$HOME/.config/claude-code/auth.json" ]]; then
+  cp "$HOME/.config/claude-code/auth.json" "$SEEDS/claude/auth.json"
+  chmod 600 "$SEEDS/claude/auth.json"
+  ok "auth (from ~/.config/claude-code/auth.json)"
 elif [[ "$(uname)" == "Darwin" ]]; then
   CLAUDE_CREDS="$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null || true)"
   if [[ -n "$CLAUDE_CREDS" ]]; then
-    echo "$CLAUDE_CREDS" > "$SEEDS/claude/credentials.json"
-    chmod 600 "$SEEDS/claude/credentials.json"
+    echo "$CLAUDE_CREDS" > "$SEEDS/claude/auth.json"
+    chmod 600 "$SEEDS/claude/auth.json"
     ok "auth (from macOS Keychain)"
   else
     skip "auth (not found in Keychain)"
@@ -57,7 +58,7 @@ else
   skip "auth (no credentials found)"
 fi
 
-# Settings, agents, plugins config, skills
+# Settings, agents, plugins config, skills (from ~/.claude/)
 sync_file "$HOME/.claude/settings.json" "$SEEDS/claude/settings.json" "settings"
 sync_dir  "$HOME/.claude/agents"        "$SEEDS/claude/agents"        "agents"
 sync_dir  "$HOME/.claude/skills"        "$SEEDS/claude/skills"        "skills"
@@ -92,7 +93,26 @@ echo
 # ── OpenCode ─────────────────────────────────────────────
 echo "OpenCode:"
 mkdir -p "$SEEDS/opencode"
-sync_file "$HOME/.opencode/auth.json" "$SEEDS/opencode/auth.json" "auth"
+
+# Auth: ~/.local/share/opencode/auth.json
+sync_file "$HOME/.local/share/opencode/auth.json" "$SEEDS/opencode/auth.json" "auth"
+
+# Config: ~/.config/opencode/ (includes opencode.json, oh-my-opencode, plugins)
+if [[ -d "$HOME/.config/opencode" ]]; then
+  mkdir -p "$SEEDS/opencode/config"
+  # Copy all config files (opencode.json, oh-my-opencode.json, antigravity-accounts.json, etc.)
+  for f in "$HOME/.config/opencode"/*.json; do
+    [[ -f "$f" ]] && sync_file "$f" "$SEEDS/opencode/config/$(basename "$f")" "config/$(basename "$f")"
+  done
+  # Copy node_modules for plugins (oh-my-opencode etc.)
+  if [[ -d "$HOME/.config/opencode/node_modules" ]]; then
+    rm -rf "$SEEDS/opencode/config/node_modules"
+    cp -a "$HOME/.config/opencode/node_modules" "$SEEDS/opencode/config/node_modules"
+    ok "config/node_modules (plugins)"
+  fi
+  sync_file "$HOME/.config/opencode/package.json" "$SEEDS/opencode/config/package.json" "config/package.json"
+  sync_file "$HOME/.config/opencode/bun.lock"     "$SEEDS/opencode/config/bun.lock"     "config/bun.lock"
+fi
 echo
 
 echo "Seeds dir: $SEEDS"

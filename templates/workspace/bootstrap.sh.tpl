@@ -83,12 +83,26 @@ seed_dir() {
   fi
 }
 
-# Claude Code
-seed_file /seed/ai/claude/credentials.json "$DEV_HOME/.claude/credentials.json"
-seed_file /seed/ai/claude/settings.json    "$DEV_HOME/.claude/settings.json"
-seed_dir  /seed/ai/claude/agents           "$DEV_HOME/.claude/agents"
-seed_dir  /seed/ai/claude/skills           "$DEV_HOME/.claude/skills"
-seed_dir  /seed/ai/claude/plugins          "$DEV_HOME/.claude/plugins"
+# Claude Code (credentials file + env var + skip onboarding)
+seed_file /seed/ai/claude/auth.json     "$DEV_HOME/.claude/.credentials.json"
+if [[ -f /seed/ai/claude/auth.json ]]; then
+  # Extract OAuth token for env var (interactive TUI needs this)
+  CLAUDE_TOKEN="$(python3 -c "import json; d=json.load(open('/seed/ai/claude/auth.json')); print(d.get('claudeAiOauth',{}).get('accessToken',''))" 2>/dev/null || true)"
+  if [[ -n "$CLAUDE_TOKEN" ]]; then
+    grep -q 'CLAUDE_CODE_OAUTH_TOKEN' "$DEV_HOME/.bashrc" 2>/dev/null || \
+      echo "export CLAUDE_CODE_OAUTH_TOKEN=\"$CLAUDE_TOKEN\"" >> "$DEV_HOME/.bashrc"
+    chown "$DEV_USER:$DEV_USER" "$DEV_HOME/.bashrc"
+    log "set CLAUDE_CODE_OAUTH_TOKEN in .bashrc"
+  fi
+  # Mark onboarding complete (without this, TUI always shows login screen)
+  echo '{"hasCompletedOnboarding":true,"autoUpdates":false}' > "$DEV_HOME/.claude.json"
+  chown "$DEV_USER:$DEV_USER" "$DEV_HOME/.claude.json"
+  log "set hasCompletedOnboarding in .claude.json"
+fi
+seed_file /seed/ai/claude/settings.json "$DEV_HOME/.claude/settings.json"
+seed_dir  /seed/ai/claude/agents        "$DEV_HOME/.claude/agents"
+seed_dir  /seed/ai/claude/skills        "$DEV_HOME/.claude/skills"
+seed_dir  /seed/ai/claude/plugins       "$DEV_HOME/.claude/plugins"
 
 # Codex
 seed_file /seed/ai/codex/auth.json    "$DEV_HOME/.codex/auth.json"
@@ -103,8 +117,23 @@ seed_file /seed/ai/gemini/google_accounts.json "$DEV_HOME/.gemini/google_account
 seed_file /seed/ai/gemini/google_account_id   "$DEV_HOME/.gemini/google_account_id"
 seed_file /seed/ai/gemini/GEMINI.md           "$DEV_HOME/.gemini/GEMINI.md"
 
-# OpenCode
-seed_file /seed/ai/opencode/auth.json "$DEV_HOME/.opencode/auth.json"
+# OpenCode (auth in ~/.local/share/opencode/, config in ~/.config/opencode/)
+seed_file /seed/ai/opencode/auth.json "$DEV_HOME/.local/share/opencode/auth.json"
+seed_dir  /seed/ai/opencode/config    "$DEV_HOME/.config/opencode"
+
+# ── Workspace directory setup ──
+mkdir -p /workspace/projects
+chown "$DEV_USER:$DEV_USER" /workspace /workspace/projects
+
+# Symlink ~/projects → /workspace/projects (convenience for SSH sessions)
+ln -sfn /workspace/projects "$DEV_HOME/projects"
+chown -h "$DEV_USER:$DEV_USER" "$DEV_HOME/projects"
+
+# Default SSH login dir → /workspace
+if ! grep -q 'cd /workspace' "$DEV_HOME/.bashrc" 2>/dev/null; then
+  echo 'cd /workspace' >> "$DEV_HOME/.bashrc"
+  chown "$DEV_USER:$DEV_USER" "$DEV_HOME/.bashrc"
+fi
 
 # Ensure sshd runtime dir
 mkdir -p /run/sshd
