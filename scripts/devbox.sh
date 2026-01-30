@@ -19,6 +19,7 @@ usage() {
   echo "  devbox fresh [flags]         Nuclear rebuild (stop, nuke, rebuild)"
   echo "  devbox reset                 Delete all volumes (danger)"
   echo "  devbox doctor                Health check"
+  echo "  devbox sync-seeds            Sync AI tool auth into seeds/"
   echo ""
   bold "TLS:"
   echo "  devbox tls status            Show TLS certificate status"
@@ -56,7 +57,7 @@ shift 2>/dev/null || true
 
 case "$CMD" in
   # ── Core commands (no subgroup) ──
-  up|down|bootstrap|install|refresh|fresh|reset|doctor)
+  up|down|bootstrap|install|refresh|fresh|reset|doctor|sync-seeds)
     exec "$SCRIPTS_DIR/core/$CMD.sh" "$@"
     ;;
 

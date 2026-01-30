@@ -6,6 +6,10 @@
 keys/*
 !keys/.keep
 
+# AI tool auth seeds (local only)
+seeds/*
+!seeds/.keep
+
 # mkcert / TLS artifacts (local only)
 proxy/certs/*
 !proxy/certs/.keep

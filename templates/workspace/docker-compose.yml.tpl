@@ -21,6 +21,8 @@ services:
       - ../../../keys/__PUBKEY_FILE__:/seed/authorized_keys:ro
       - ../../../keys/__PRIVKEY_FILE__:/seed/id_key:ro
       - ./bootstrap.sh:/bootstrap.sh:ro
+      # AI tool auth seeds (bootstrap copies if present)
+      - ../../../seeds:/seed/ai:ro
 
     networks:
       - proxy

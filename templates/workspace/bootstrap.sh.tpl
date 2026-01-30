@@ -61,6 +61,21 @@ else
   log "WARNING: no private key at $KEY_SRC — git push/pull over SSH will not work"
 fi
 
+# ── AI tool auth seeding (optional, from /seed/ai/) ──
+seed_ai_file() {
+  local src="$1" dest_dir="$2" dest_file="$3"
+  if [[ -f "$src" ]]; then
+    install -d -m 700 -o "$DEV_USER" -g "$DEV_USER" "$dest_dir"
+    install -m 600 -o "$DEV_USER" -g "$DEV_USER" "$src" "$dest_dir/$dest_file"
+    log "seeded $dest_file"
+  fi
+}
+
+seed_ai_file /seed/ai/codex-auth.json       "$DEV_HOME/.codex"   auth.json
+seed_ai_file /seed/ai/claude-credentials.json "$DEV_HOME/.claude" credentials.json
+seed_ai_file /seed/ai/gemini-oauth.json      "$DEV_HOME/.gemini"  oauth_creds.json
+seed_ai_file /seed/ai/opencode-auth.json     "$DEV_HOME/.opencode" auth.json
+
 # Ensure sshd runtime dir
 mkdir -p /run/sshd
 

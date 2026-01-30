@@ -127,6 +127,32 @@ RUN LD_LIBRARY_PATH="/opt/php/8.4/lib" /opt/php/8.4/bin/php -r "copy('https://ge
     LD_LIBRARY_PATH="/opt/php/8.4/lib" /opt/php/8.4/bin/php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer && \
     rm /tmp/composer-setup.php
 
+# --------------------------------------------------
+# Node.js
+# --------------------------------------------------
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# --------------------------------------------------
+# Python (latest from deadsnakes PPA)
+# --------------------------------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    python3.13 python3.13-venv python3.13-dev && \
+    rm -rf /var/lib/apt/lists/* && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3.13 1 && \
+    python3.13 -m ensurepip && \
+    python3.13 -m pip install --upgrade pip
+
+# --------------------------------------------------
+# AI coding tools (Claude Code, Codex)
+# --------------------------------------------------
+RUN npm install -g @anthropic-ai/claude-code @openai/codex
+
 EXPOSE 22
 
 CMD ["/usr/sbin/sshd", "-D", "-e"]
