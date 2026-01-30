@@ -14,16 +14,20 @@ fail(){ echo "ERROR: $*" >&2; exit 1; }
 ok(){ echo "✅ $*"; }
 warn(){ echo "⚠️  $*"; }
 
-ok "Starting core infra..."
-"$ROOT/scripts/bootstrap"
+# Start core infrastructure
+ok "Starting proxy..."
+docker compose -f "$ROOT/proxy/docker-compose.yml" up -d
 
+ok "Starting databases..."
+docker compose -f "$ROOT/db/docker-compose.yml" up -d
+
+# Start workspaces
 if [[ ! -d "$GEN" ]]; then
   warn "No generated workspaces folder: $GEN"
   warn "Create a workspace first: devbox-ws-new"
   exit 0
 fi
 
-# Enumerate workspaces
 shopt -s nullglob
 WS_DIRS=("$GEN"/*)
 shopt -u nullglob
@@ -34,14 +38,7 @@ if [[ ${#WS_DIRS[@]} -eq 0 ]]; then
   exit 0
 fi
 
-ok "Found workspaces:"
-for wsdir in "${WS_DIRS[@]}"; do
-  [[ -d "$wsdir" ]] || continue
-  ws="$(basename "$wsdir")"
-  echo "  - $ws"
-done
-
-ok "Starting all workspaces..."
+ok "Starting workspaces..."
 for wsdir in "${WS_DIRS[@]}"; do
   [[ -d "$wsdir" ]] || continue
   ws="$(basename "$wsdir")"

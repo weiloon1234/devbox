@@ -17,11 +17,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
   && docker-php-ext-install -j"$(nproc)" \
     bcmath \
+    exif \
+    gd \
+    intl \
+    pcntl \
     pdo_mysql \
     pdo_pgsql \
-    zip \
-    intl \
-    gd
+    sockets \
+    zip
 
 RUN pecl install redis imagick \
   && docker-php-ext-enable redis imagick
