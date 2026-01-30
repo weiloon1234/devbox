@@ -17,7 +17,7 @@ services:
 
     volumes:
       - __CODE_VOLUME__:/workspace
-      - ../../../keys/__PUBKEY_FILE__:/seed/authorized_keys:ro
+      - ../../keys/__PUBKEY_FILE__:/seed/authorized_keys:ro
       - ./bootstrap.sh:/bootstrap.sh:ro
 
     networks:

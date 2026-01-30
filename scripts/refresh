@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GEN="$ROOT/generated/workspaces"
+
+ok(){ echo "✅ $*"; }
+warn(){ echo "⚠️  $*"; }
+fail(){ echo "ERROR: $*" >&2; exit 1; }
+
+has_cmd(){ command -v "$1" >/dev/null 2>&1; }
+
+NO_CACHE=0
+SKIP_BUILD=0
+SKIP_BOOTSTRAP=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-cache) NO_CACHE=1; shift ;;
+    --skip-build) SKIP_BUILD=1; shift ;;
+    --skip-bootstrap) SKIP_BOOTSTRAP=1; shift ;;
+    *) fail "unknown arg: $1" ;;
+  esac
+done
+
+has_cmd docker || fail "docker not found"
+docker info >/dev/null 2>&1 || fail "docker daemon not running (open Docker Desktop)"
+
+ok "Stopping all workspaces..."
+if [[ -d "$GEN" ]]; then
+  shopt -s nullglob
+  for f in "$GEN"/*/docker-compose.yml; do
+    docker compose -f "$f" down || true
+  done
+  shopt -u nullglob
+fi
+
+ok "Stopping core infra (proxy/db) if present..."
+[[ -f "$ROOT/proxy/docker-compose.yml" ]] && docker compose -f "$ROOT/proxy/docker-compose.yml" down || true
+[[ -f "$ROOT/db/docker-compose.yml" ]] && docker compose -f "$ROOT/db/docker-compose.yml" down || true
+
+if [[ "$SKIP_BUILD" -eq 0 ]]; then
+  ok "Rebuilding images..."
+  declare -a BUILD_FLAGS=()
+  if [[ "$NO_CACHE" -eq 1 ]]; then
+    BUILD_FLAGS+=(--no-cache)
+  fi
+
+  # Workspace image
+  if [[ -d "$ROOT/images/workspace" ]]; then
+    docker build "${BUILD_FLAGS[@]}" -t devbox-workspace:latest "$ROOT/images/workspace"
+  else
+    fail "missing folder: images/workspace"
+  fi
+
+  # Optional: keep your existing behavior if runtime/php exists
+  if [[ -d "$ROOT/runtime/php" ]]; then
+    ok "Rebuilding PHP images (runtime/php)..."
+    docker build "${BUILD_FLAGS[@]}" -t devbox-php:8.1 --build-arg PHP_VERSION=8.1 "$ROOT/runtime/php" || true
+    docker build "${BUILD_FLAGS[@]}" -t devbox-php:8.2 --build-arg PHP_VERSION=8.2 "$ROOT/runtime/php" || true
+    docker build "${BUILD_FLAGS[@]}" -t devbox-php:8.3 --build-arg PHP_VERSION=8.3 "$ROOT/runtime/php" || true
+    docker build "${BUILD_FLAGS[@]}" -t devbox-php:8.4 --build-arg PHP_VERSION=8.4 "$ROOT/runtime/php" || true
+    docker build "${BUILD_FLAGS[@]}" -t devbox-php:8.5 --build-arg PHP_VERSION=8.5 "$ROOT/runtime/php" || true
+  fi
+else
+  warn "Skipping image builds (--skip-build)"
+fi
+
+if [[ "$SKIP_BOOTSTRAP" -eq 0 ]]; then
+  ok "Starting core infra via scripts/bootstrap..."
+  "$ROOT/scripts/bootstrap"
+else
+  warn "Skipping bootstrap (--skip-bootstrap)"
+fi
+
+ok "Starting all workspaces..."
+if [[ -d "$GEN" ]]; then
+  shopt -s nullglob
+  for f in "$GEN"/*/docker-compose.yml; do
+    docker compose -f "$f" up -d
+  done
+  shopt -u nullglob
+fi
+
+ok "Done. Try: devbox-ws-ssh <workspace>"

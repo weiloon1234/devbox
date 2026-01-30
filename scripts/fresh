@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GEN="$ROOT/generated/workspaces"
+
+ok(){ echo "✅ $*"; }
+warn(){ echo "⚠️  $*"; }
+fail(){ echo "ERROR: $*" >&2; exit 1; }
+has_cmd(){ command -v "$1" >/dev/null 2>&1; }
+
+NUKE_IMAGES=0
+NUKE_VOLUMES=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --nuke-images) NUKE_IMAGES=1; shift ;;
+    --nuke-volumes) NUKE_VOLUMES=1; shift ;;
+    *) fail "unknown arg: $1" ;;
+  esac
+done
+
+has_cmd docker || fail "docker not found"
+docker info >/dev/null 2>&1 || fail "docker daemon not running (open Docker Desktop)"
+
+ok "Bringing down workspaces..."
+if [[ -d "$GEN" ]]; then
+  shopt -s nullglob
+  for f in "$GEN"/*/docker-compose.yml; do
+    if [[ "$NUKE_VOLUMES" -eq 1 ]]; then
+      docker compose -f "$f" down -v || true
+    else
+      docker compose -f "$f" down || true
+    fi
+  done
+  shopt -u nullglob
+fi
+
+ok "Bringing down core infra..."
+if [[ -f "$ROOT/proxy/docker-compose.yml" ]]; then
+  [[ "$NUKE_VOLUMES" -eq 1 ]] && docker compose -f "$ROOT/proxy/docker-compose.yml" down -v || docker compose -f "$ROOT/proxy/docker-compose.yml" down || true
+fi
+if [[ -f "$ROOT/db/docker-compose.yml" ]]; then
+  [[ "$NUKE_VOLUMES" -eq 1 ]] && docker compose -f "$ROOT/db/docker-compose.yml" down -v || docker compose -f "$ROOT/db/docker-compose.yml" down || true
+fi
+
+ok "Removing devbox containers left behind (best-effort)..."
+docker ps -a --format '{{.Names}}' | grep -E '^devbox-|^ws-' | xargs -r docker rm -f || true
+
+if [[ "$NUKE_IMAGES" -eq 1 ]]; then
+  ok "Removing devbox images..."
+  docker images --format '{{.Repository}}:{{.Tag}}' \
+    | grep -E '^devbox-' \
+    | xargs -r docker rmi -f || true
+else
+  warn "Keeping images (use --nuke-images to remove devbox-* images)"
+fi
+
+ok "Cleaning unused docker artifacts (safe prune)..."
+docker system prune -f
+
+ok "Done."
+if [[ "$NUKE_VOLUMES" -eq 1 ]]; then
+  warn "Volumes were deleted. Workspace code/data may be gone."
+else
+  ok "Volumes kept. Your workspace code/data should still exist."
+fi
+
+echo
+echo "Next: ./scripts/refresh"

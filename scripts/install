@@ -349,6 +349,8 @@ install_cmd devbox-mount-all scripts/ws-mount-all
 install_cmd devbox-umount-all scripts/ws-umount-all
 
 install_cmd devbox-doctor scripts/doctor
+install_cmd devbox-refresh scripts/refresh
+install_cmd devbox-fresh scripts/fresh
 
 echo
 echo "[install] Done."
