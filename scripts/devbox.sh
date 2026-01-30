@@ -39,6 +39,8 @@ usage() {
   echo "                               Unmount a workspace"
   echo "  devbox workspace mount-all   Mount all workspaces"
   echo "  devbox workspace umount-all  Unmount all workspaces"
+  echo "  devbox workspace rebuild [<name>] [--no-cache]"
+  echo "                               Rebuild image + recreate (keeps data)"
   echo "  devbox workspace nginx-reload <name>"
   echo "                               Reload nginx in a workspace"
   echo ""
@@ -87,19 +89,19 @@ case "$CMD" in
     esac
 
     case "$SUB" in
-      new|list|ssh|php|delete|add-project|mount|umount|mount-all|umount-all|nginx-reload)
+      new|list|ssh|php|delete|add-project|mount|umount|mount-all|umount-all|nginx-reload|rebuild)
         exec "$SCRIPTS_DIR/workspace/$SUB.sh" "$@"
         ;;
       "")
         red "Missing workspace subcommand."
         echo "Usage: devbox workspace <command>"
-        echo "Commands: new, list, ssh, php, delete, add-project, mount, umount, mount-all, umount-all, nginx-reload"
+        echo "Commands: new, list, ssh, php, delete, add-project, rebuild, mount, umount, mount-all, umount-all, nginx-reload"
         exit 1
         ;;
       *)
         red "Unknown workspace command: $SUB"
         echo "Usage: devbox workspace <command>"
-        echo "Commands: new, list, ssh, php, delete, add-project, mount, umount, mount-all, umount-all, nginx-reload"
+        echo "Commands: new, list, ssh, php, delete, add-project, rebuild, mount, umount, mount-all, umount-all, nginx-reload"
         exit 1
         ;;
     esac
