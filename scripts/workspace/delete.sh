@@ -48,6 +48,17 @@ if [[ -d "$MOUNT_POINT" ]]; then
   rm -rf "$MOUNT_POINT"
 fi
 
+# 5) Clean up SSH config entries (workspace + all projects)
+source "$ROOT/scripts/lib/ssh-config.sh"
+ssh_config_remove "devbox-$WS"
+# Remove all project entries matching devbox-<ws>--*
+if [[ -f "$SSH_CONFIG" ]]; then
+  grep -oP "^Host devbox-${WS}--\S+" "$SSH_CONFIG" 2>/dev/null | while read -r _ alias; do
+    ssh_config_remove "$alias"
+  done
+fi
+ok "Cleaned SSH config entries"
+
 echo
 ok "Workspace '$WS' deleted."
 echo "You can recreate it with:"

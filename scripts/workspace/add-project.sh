@@ -242,12 +242,20 @@ esac
 # Reload nginx (workspace nginx container)
 docker exec "ws-$WS-nginx" nginx -s reload
 
+# Add per-project SSH config entry for VS Code Remote SSH
+source "$ROOT/scripts/lib/ws-meta.sh"
+ws_load_meta "$WS"
+source "$ROOT/scripts/lib/ssh-config.sh"
+ssh_config_set "devbox-${WS}--${PROJECT}" "$SSH_PORT" "$WS_PRIVKEY" "$REMOTE_PROJECT_DIR"
+
 echo "OK:"
 echo " - created:    $REMOTE_PROJECT_DIR"
 echo " - wrote stub: $REMOTE_STUB_PATH"
 echo " - reloaded:   ws-$WS-nginx"
+echo " - ssh config: Host devbox-${WS}--${PROJECT}"
 echo
 echo "Access:"
 echo "  SSH:    devbox workspace ssh $WS  →  cd projects/$PROJECT"
+echo "  VS Code: Remote-SSH → devbox-${WS}--${PROJECT}"
 echo "  Finder: ~/DevboxMount/$WS/projects/$PROJECT"
 echo "  URL:    https://$DOMAIN"

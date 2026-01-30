@@ -25,5 +25,15 @@ if [ ! -x "$PHP_BIN" ]; then
   exit 1
 fi
 
-export LD_LIBRARY_PATH="/opt/php/$VERSION/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-exec "$PHP_BIN" "$@"
+# Point to the correct ini directory for this PHP version
+# (extension_dir is set inside 00-extension-dir.ini)
+export PHP_INI_SCAN_DIR="/opt/php/$VERSION/etc/php/conf.d"
+
+# Use the bundled dynamic linker to isolate from host glibc (Debian 13 vs Ubuntu 24.04)
+LINKER="$(ls /opt/php/$VERSION/lib/ld-linux-* 2>/dev/null | head -1)"
+if [ -n "$LINKER" ] && [ -x "$LINKER" ]; then
+  exec "$LINKER" --library-path "/opt/php/$VERSION/lib" "$PHP_BIN" "$@"
+else
+  export LD_LIBRARY_PATH="/opt/php/$VERSION/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+  exec "$PHP_BIN" "$@"
+fi

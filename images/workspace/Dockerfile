@@ -6,7 +6,11 @@ RUN mkdir -p /collected/php /collected/lib && \
     { ldd /usr/local/bin/php 2>/dev/null; \
       find /usr/local/lib/php/extensions -name '*.so' -exec ldd {} \; 2>/dev/null; \
     } | grep -oP '(?:/usr/lib|/lib)/\S+' | sort -u | \
-    xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true
+    xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/ld-linux-* /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/aarch64-linux-gnu/ld-linux-* /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/aarch64-linux-gnu/libc.so.* /collected/lib/ 2>/dev/null || \
+    cp -L /lib/x86_64-linux-gnu/libc.so.* /collected/lib/ 2>/dev/null || true
 
 FROM devbox-php:8.2 AS php82-collector
 USER root
@@ -15,7 +19,11 @@ RUN mkdir -p /collected/php /collected/lib && \
     { ldd /usr/local/bin/php 2>/dev/null; \
       find /usr/local/lib/php/extensions -name '*.so' -exec ldd {} \; 2>/dev/null; \
     } | grep -oP '(?:/usr/lib|/lib)/\S+' | sort -u | \
-    xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true
+    xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/ld-linux-* /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/aarch64-linux-gnu/ld-linux-* /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/aarch64-linux-gnu/libc.so.* /collected/lib/ 2>/dev/null || \
+    cp -L /lib/x86_64-linux-gnu/libc.so.* /collected/lib/ 2>/dev/null || true
 
 FROM devbox-php:8.3 AS php83-collector
 USER root
@@ -24,7 +32,11 @@ RUN mkdir -p /collected/php /collected/lib && \
     { ldd /usr/local/bin/php 2>/dev/null; \
       find /usr/local/lib/php/extensions -name '*.so' -exec ldd {} \; 2>/dev/null; \
     } | grep -oP '(?:/usr/lib|/lib)/\S+' | sort -u | \
-    xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true
+    xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/ld-linux-* /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/aarch64-linux-gnu/ld-linux-* /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/aarch64-linux-gnu/libc.so.* /collected/lib/ 2>/dev/null || \
+    cp -L /lib/x86_64-linux-gnu/libc.so.* /collected/lib/ 2>/dev/null || true
 
 FROM devbox-php:8.4 AS php84-collector
 USER root
@@ -33,7 +45,11 @@ RUN mkdir -p /collected/php /collected/lib && \
     { ldd /usr/local/bin/php 2>/dev/null; \
       find /usr/local/lib/php/extensions -name '*.so' -exec ldd {} \; 2>/dev/null; \
     } | grep -oP '(?:/usr/lib|/lib)/\S+' | sort -u | \
-    xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true
+    xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/ld-linux-* /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/aarch64-linux-gnu/ld-linux-* /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/aarch64-linux-gnu/libc.so.* /collected/lib/ 2>/dev/null || \
+    cp -L /lib/x86_64-linux-gnu/libc.so.* /collected/lib/ 2>/dev/null || true
 
 FROM devbox-php:8.5 AS php85-collector
 USER root
@@ -42,7 +58,11 @@ RUN mkdir -p /collected/php /collected/lib && \
     { ldd /usr/local/bin/php 2>/dev/null; \
       find /usr/local/lib/php/extensions -name '*.so' -exec ldd {} \; 2>/dev/null; \
     } | grep -oP '(?:/usr/lib|/lib)/\S+' | sort -u | \
-    xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true
+    xargs -I{} cp -L {} /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/ld-linux-* /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/aarch64-linux-gnu/ld-linux-* /collected/lib/ 2>/dev/null || true && \
+    cp -L /lib/aarch64-linux-gnu/libc.so.* /collected/lib/ 2>/dev/null || \
+    cp -L /lib/x86_64-linux-gnu/libc.so.* /collected/lib/ 2>/dev/null || true
 
 # ---- Main workspace image ----
 FROM ubuntu:24.04
@@ -113,9 +133,12 @@ COPY --from=php85-collector /collected/php /opt/php/8.5
 COPY --from=php85-collector /collected/lib /opt/php/8.5/lib
 
 # Versioned PHP commands (php81, php82, php83, php84, php85)
+# Use the bundled dynamic linker to isolate from host glibc
 RUN set -e; for v in 8.1 8.2 8.3 8.4 8.5; do \
       short="$(echo "$v" | tr -d .)"; \
-      printf '#!/bin/sh\nexport LD_LIBRARY_PATH="/opt/php/%s/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\nexec /opt/php/%s/bin/php "$@"\n' "$v" "$v" \
+      LINKER="$(ls /opt/php/$v/lib/ld-linux-* 2>/dev/null | head -1)"; \
+      printf '#!/bin/sh\nexport PHP_INI_SCAN_DIR="/opt/php/%s/etc/php/conf.d"\nexec %s --library-path /opt/php/%s/lib /opt/php/%s/bin/php "$@"\n' \
+        "$v" "$LINKER" "$v" "$v" \
         > "/usr/local/bin/php${short}"; \
       chmod +x "/usr/local/bin/php${short}"; \
     done
@@ -123,6 +146,14 @@ RUN set -e; for v in 8.1 8.2 8.3 8.4 8.5; do \
 # php wrapper (reads .php-version, default 8.4)
 COPY php-wrapper.sh /usr/local/bin/php
 RUN chmod +x /usr/local/bin/php
+
+# Patch each PHP version's ini to set extension_dir explicitly
+# (so extensions load even when PHP is invoked directly, e.g. composer subprocess)
+RUN set -e; for v in 8.1 8.2 8.3 8.4 8.5; do \
+      EXT_DIR="$(ls -d /opt/php/$v/lib/php/extensions/no-debug-* 2>/dev/null | head -1)"; \
+      INI_DIR="/opt/php/$v/etc/php/conf.d"; \
+      echo "extension_dir=$EXT_DIR" > "$INI_DIR/00-extension-dir.ini"; \
+    done
 
 # Composer (download phar directly — avoids running PHP during build)
 RUN curl -fsSL https://getcomposer.org/download/latest-stable/composer.phar -o /usr/local/bin/composer && \

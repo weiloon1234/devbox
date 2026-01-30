@@ -116,12 +116,17 @@ sed \
   -e "s/__WS_NAME__/${WS_NAME}/g" \
   "$TPL_DIR/nginx.conf.tpl" > "$NGINX_OUT"
 
+# Add SSH config entry for VS Code Remote / terminal SSH
+source "$ROOT/scripts/lib/ssh-config.sh"
+ssh_config_set "devbox-$WS_NAME" "$SSH_PORT" "$KEYS_DIR/$PRIVKEY_FILE" "/workspace"
+
 echo
 echo "Generated:"
 echo " - $COMPOSE_OUT"
 echo " - $BOOTSTRAP_OUT"
 echo " - $NGINX_OUT"
 echo " - $WS_DIR/ws.env"
+echo " - ~/.ssh/config (Host devbox-$WS_NAME)"
 echo
 echo "Workspace details:"
 echo " - name: $WS_NAME"

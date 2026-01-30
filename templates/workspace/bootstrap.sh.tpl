@@ -134,14 +134,26 @@ chown "$DEV_USER:$DEV_USER" /workspace /workspace/projects
 ln -sfn /workspace/projects "$DEV_HOME/projects"
 chown -h "$DEV_USER:$DEV_USER" "$DEV_HOME/projects"
 
-# Persist JetBrains + VS Code Server caches on the workspace volume
+# Persist IDE caches on the workspace volume
 # (avoids re-downloading ~1GB IDE backend on every container restart)
-for cache_name in JetBrains RemoteDev vscode-server; do
-  mkdir -p "/workspace/.ide-cache/$cache_name"
-  ln -sfn "/workspace/.ide-cache/$cache_name" "$DEV_HOME/.$cache_name"
-  chown -h "$DEV_USER:$DEV_USER" "$DEV_HOME/.$cache_name"
+# JetBrains Gateway stores backend at ~/.cache/JetBrains/ (~910MB)
+# VS Code Remote stores server at ~/.vscode-server/
+IDE_CACHE="/workspace/.ide-cache"
+mkdir -p "$IDE_CACHE/cache-jetbrains" "$IDE_CACHE/config-jetbrains" "$IDE_CACHE/vscode-server"
+mkdir -p "$DEV_HOME/.cache" "$DEV_HOME/.config"
+# Remove real dirs before symlinking (ln -sfn won't replace a directory)
+for pair in ".cache/JetBrains:cache-jetbrains" ".config/JetBrains:config-jetbrains" ".vscode-server:vscode-server"; do
+  rel="${pair%%:*}" name="${pair##*:}"
+  target="$DEV_HOME/$rel"
+  # If it's a real directory (not already a symlink), migrate contents then remove
+  if [ -d "$target" ] && [ ! -L "$target" ]; then
+    cp -a "$target/." "$IDE_CACHE/$name/" 2>/dev/null || true
+    rm -rf "$target"
+  fi
+  ln -sfn "$IDE_CACHE/$name" "$target"
+  chown -h "$DEV_USER:$DEV_USER" "$target"
 done
-chown -R "$DEV_USER:$DEV_USER" /workspace/.ide-cache
+chown -R "$DEV_USER:$DEV_USER" "$IDE_CACHE"
 
 # ── Dev Container config (workspace-level default) ──
 DEVCONTAINER_DIR="/workspace/.devcontainer"
