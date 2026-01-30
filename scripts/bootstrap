@@ -45,24 +45,16 @@ fi
 
 # Precheck: for each generated workspace, ensure referenced pubkey file exists
 GEN_ROOT="$ROOT/generated/workspaces"
+source "$ROOT/scripts/lib/ws-meta.sh"
 if [[ -d "$GEN_ROOT" ]]; then
   shopt -s nullglob
   for wsdir in "$GEN_ROOT"/*; do
     [[ -d "$wsdir" ]] || continue
-    compose="$wsdir/docker-compose.yml"
-    [[ -f "$compose" ]] || continue
+    [[ -f "$wsdir/docker-compose.yml" ]] || continue
+    ws="$(basename "$wsdir")"
 
-    # Extract pubkey filename from the compose file path line:
-    # ../../keys/<pubkey>:/seed/authorized_keys:ro
-    pubkey="$(grep -E 'seed/authorized_keys:ro' "$compose" \
-      | head -n1 \
-      | sed -E 's/.*keys\/([^:"]+):\/seed\/authorized_keys:ro.*/\1/' )"
-
-    if [[ -n "$pubkey" ]]; then
-      [[ -f "$ROOT/keys/$pubkey" ]] || fail "workspace $(basename "$wsdir") requires missing key file: keys/$pubkey"
-    else
-      fail "cannot detect pubkey in $compose (expected ../../keys/<file>:/seed/authorized_keys:ro)"
-    fi
+    ws_load_meta "$ws"
+    [[ -f "$ROOT/keys/$PUBKEY_FILE" ]] || fail "workspace $ws requires missing key file: keys/$PUBKEY_FILE"
   done
   shopt -u nullglob
 fi

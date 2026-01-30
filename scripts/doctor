@@ -11,6 +11,8 @@ bad(){ echo "❌ $*"; }
 
 has_cmd(){ command -v "$1" >/dev/null 2>&1; }
 
+source "$ROOT/scripts/lib/ws-meta.sh"
+
 echo "=== devbox doctor ==="
 echo "root: $ROOT"
 echo "mount base: $MOUNT_BASE"
@@ -141,10 +143,11 @@ for wsdir in "$GEN"/*; do
 
   ws_count=$((ws_count+1))
 
-  port="$(grep -E '^\s*-\s*"127\.0\.0\.1:[0-9]+:22"' "$compose" \
-    | head -n1 \
-    | sed -E 's/.*127\.0\.0\.1:([0-9]+):22.*/\1/')"
-  [[ -n "$port" ]] || port="?"
+  if ws_load_meta "$ws" 2>/dev/null; then
+    port="$SSH_PORT"
+  else
+    port="?"
+  fi
 
   echo "Workspace: $ws (ssh port: $port)"
 

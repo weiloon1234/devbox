@@ -97,6 +97,15 @@ sed \
   "$TPL_DIR/bootstrap.sh.tpl" > "$BOOTSTRAP_OUT"
 chmod +x "$BOOTSTRAP_OUT"
 
+# Write ws.env (metadata for shared helper)
+cat > "$WS_DIR/ws.env" <<EOF
+WS_NAME=$WS_NAME
+SSH_PORT=$SSH_PORT
+PUBKEY_FILE=$PUBKEY_FILE
+GIT_NAME=$GIT_NAME
+GIT_EMAIL=$GIT_EMAIL
+EOF
+
 # Render nginx.conf
 sed \
   -e "s/__WS_NAME__/${WS_NAME}/g" \
@@ -107,6 +116,7 @@ echo "Generated:"
 echo " - $COMPOSE_OUT"
 echo " - $BOOTSTRAP_OUT"
 echo " - $NGINX_OUT"
+echo " - $WS_DIR/ws.env"
 echo
 echo "Workspace details:"
 echo " - name: $WS_NAME"

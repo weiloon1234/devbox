@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GEN_ROOT="$ROOT/generated/workspaces"
 
+source "$ROOT/scripts/lib/ws-meta.sh"
+
 printf "%-20s %-10s %-35s\n" "WORKSPACE" "SSH_PORT" "COMPOSE"
 printf "%-20s %-10s %-35s\n" "---------" "--------" "------"
 
@@ -14,13 +16,15 @@ fi
 
 shopt -s nullglob
 FOUND=0
-for compose in "$GEN_ROOT"/*/docker-compose.yml; do
-  ws="$(basename "$(dirname "$compose")")"
-  port="$(grep -E '^\s*-\s*"127\.0\.0\.1:[0-9]+:22"' "$compose" \
-    | head -n1 \
-    | sed -E 's/.*127\.0\.0\.1:([0-9]+):22.*/\1/')"
+for wsdir in "$GEN_ROOT"/*/; do
+  [[ -d "$wsdir" ]] || continue
+  ws="$(basename "$wsdir")"
 
-  [[ -n "$port" ]] || port="?"
+  if ws_load_meta "$ws" 2>/dev/null; then
+    port="$SSH_PORT"
+  else
+    port="?"
+  fi
 
   printf "%-20s %-10s %-35s\n" "$ws" "$port" "generated/workspaces/$ws/docker-compose.yml"
   FOUND=$((FOUND+1))

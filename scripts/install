@@ -334,6 +334,7 @@ install_cmd devbox-ws-new scripts/workspace-new
 install_cmd devbox-ws-list scripts/ws-list
 install_cmd devbox-ws-ssh scripts/ws-ssh
 install_cmd devbox-ws-php scripts/ws-php
+install_cmd devbox-ws-delete scripts/ws-delete
 install_cmd devbox-add-project scripts/add-project
 install_cmd devbox-db-mysql scripts/db-mysql
 install_cmd devbox-db-psql scripts/db-psql

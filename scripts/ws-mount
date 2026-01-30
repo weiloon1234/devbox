@@ -2,37 +2,37 @@
 set -euo pipefail
 
 fail(){ echo "ERROR: $*" >&2; exit 1; }
+ok(){ echo "✅ $*"; }
 
-[[ "$DEVBOX_MOUNT_BASE" == "$HOME/"* ]] || fail "DEVBOX_MOUNT_BASE must live under \$HOME"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+[[ "${DEVBOX_MOUNT_BASE:-$HOME/DevboxMount}" == "$HOME/"* ]] || fail "DEVBOX_MOUNT_BASE must live under \$HOME"
 
 WS="${1:-}"
 [[ -n "$WS" ]] || fail "usage: ws-mount <workspace>"
 
-# Where to mount on macOS
+source "$ROOT/scripts/lib/ws-meta.sh"
+ws_load_meta "$WS"
+
 MOUNT_BASE="${DEVBOX_MOUNT_BASE:-$HOME/DevboxMount}"
 MOUNT_POINT="$MOUNT_BASE/$WS"
 
-# Read SSH port from generated compose
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMPOSE="$ROOT/generated/workspaces/$WS/docker-compose.yml"
-[[ -f "$COMPOSE" ]] || fail "workspace not found: generated/workspaces/$WS"
-
-PORT="$(grep -E '^\s*-\s*"127\.0\.0\.1:[0-9]+:22"' "$COMPOSE" \
-  | head -n1 \
-  | sed -E 's/.*127\.0\.0\.1:([0-9]+):22.*/\1/')"
-[[ -n "$PORT" ]] || fail "cannot detect ssh port in $COMPOSE"
-
-mkdir -p "$MOUNT_POINT"
-
-# Check if already mounted
-if mount | grep -q "on ${MOUNT_POINT} "; then
-  echo "[mount] already mounted: $MOUNT_POINT"
+if [[ ! -f "$WS_PRIVKEY" ]]; then
+  echo "⚠️  $WS: missing private key: $WS_PRIVKEY (skipping mount)"
   exit 0
 fi
 
-# Mount /workspace (volume-backed)
-echo "[mount] mounting ws-$WS (/workspace) -> $MOUNT_POINT"
-sshfs -p "$PORT" root@127.0.0.1:/workspace "$MOUNT_POINT" \
+mkdir -p "$MOUNT_POINT"
+
+if mount | grep -q "on ${MOUNT_POINT} "; then
+  ok "already mounted: $MOUNT_POINT"
+  exit 0
+fi
+
+echo "[mount] mounting ws-$WS (/workspace) -> $MOUNT_POINT (key: $WS_PRIVKEY)"
+sshfs -p "$SSH_PORT" ubuntu@127.0.0.1:/workspace "$MOUNT_POINT" \
+  -o IdentityFile="$WS_PRIVKEY" \
+  -o IdentitiesOnly=yes \
   -o reconnect \
   -o follow_symlinks \
   -o defer_permissions \
