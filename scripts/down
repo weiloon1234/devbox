@@ -33,4 +33,15 @@ if [[ -d "$GEN" ]]; then
   done
 fi
 
+# Stop core infrastructure
+ok "Stopping core infrastructure..."
+if [[ -f "$ROOT/proxy/docker-compose.yml" ]]; then
+  ok "  down: proxy"
+  docker compose -f "$ROOT/proxy/docker-compose.yml" down >/dev/null 2>&1 || true
+fi
+if [[ -f "$ROOT/db/docker-compose.yml" ]]; then
+  ok "  down: db"
+  docker compose -f "$ROOT/db/docker-compose.yml" down >/dev/null 2>&1 || true
+fi
+
 ok "Done."
