@@ -119,16 +119,37 @@ ensure_brew_cask() {
 # Docker Desktop
 # ----------------------------
 ensure_docker_desktop() {
-  if has_cmd docker; then
-    echo "[install] docker CLI detected"
-    return 0
+  # 1) App exists
+  if [[ -d "/Applications/Docker.app" ]]; then
+    echo "[install] Docker Desktop app already installed"
+
+    # 2) CLI exists?
+    if has_cmd docker; then
+      # 3) Daemon running?
+      if docker info >/dev/null 2>&1; then
+        echo "[install] Docker daemon is running"
+        return 0
+      else
+        echo "[install] Docker Desktop installed but not running"
+        echo "→ Please open Docker.app and wait until it says 'Docker is running'"
+        return 0
+      fi
+    else
+      echo "[install] Docker Desktop present but docker CLI not in PATH"
+      echo "→ Open Docker.app once to finish setup"
+      return 0
+    fi
   fi
 
-  echo "[install] docker CLI not found; attempting to install Docker Desktop (cask)..."
+  # Not installed at all
+  echo "[install] Docker Desktop not found; installing via Homebrew cask..."
   ensure_brew_cask docker
 
-  echo "[install] Docker Desktop installed. You must OPEN Docker Desktop once and finish setup."
-  echo "After Docker is running, re-run: devbox-bootstrap"
+  echo "[install] Docker Desktop installed."
+  echo "IMPORTANT:"
+  echo "→ Open Docker.app manually once"
+  echo "→ Complete initial setup"
+  echo "→ Re-run: devbox-bootstrap"
 }
 
 # ----------------------------
@@ -318,6 +339,8 @@ install_cmd devbox-db-mysql scripts/db-mysql
 install_cmd devbox-db-psql scripts/db-psql
 install_cmd devbox-db-redis scripts/db-redis
 install_cmd devbox-tls-status scripts/tls-status
+install_cmd devbox-up scripts/up
+install_cmd devbox-down scripts/down
 
 # Mount helpers
 install_cmd devbox-mount scripts/ws-mount

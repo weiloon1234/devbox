@@ -117,12 +117,15 @@ echo " - git:  $GIT_NAME <$GIT_EMAIL>"
 echo
 
 read -r -p "Start this workspace now? (y/N): " CONFIRM
-CONFIRM="${CONFIRM,,}"
-if [[ "$CONFIRM" != "y" ]]; then
-  echo "OK. You can start later with:"
-  echo "  docker compose -f $COMPOSE_OUT up -d"
-  exit 0
-fi
+CONFIRM="$(printf '%s' "$CONFIRM" | tr '[:upper:]' '[:lower:]')"
+case "$CONFIRM" in
+  y|yes) ;;
+  *) 
+    echo "OK. You can start later with:"
+    echo "  docker compose -f $COMPOSE_OUT up -d"
+    exit 0
+    ;;
+esac
 
 # Ensure networks exist (proxy + devbox)
 if ! docker network inspect proxy >/dev/null 2>&1; then

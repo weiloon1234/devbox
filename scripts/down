@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GEN="$ROOT/generated/workspaces"
+MOUNT_BASE="${DEVBOX_MOUNT_BASE:-$HOME/DevboxMount}"
+
+ok(){ echo "✅ $*"; }
+warn(){ echo "⚠️  $*"; }
+
+# Unmount all mounts under mount base
+ok "Unmounting all workspaces under: $MOUNT_BASE"
+if [[ -d "$MOUNT_BASE" ]]; then
+  for mp in "$MOUNT_BASE"/*; do
+    [[ -d "$mp" ]] || continue
+    if mount | grep -q "on ${mp} "; then
+      ok "  umount: $mp"
+      umount "$mp" >/dev/null 2>&1 || diskutil unmount "$mp" >/dev/null 2>&1 || warn "  failed umount: $mp"
+    fi
+  done
+fi
+
+# Stop all workspaces
+if [[ -d "$GEN" ]]; then
+  ok "Stopping all workspaces..."
+  for wsdir in "$GEN"/*; do
+    [[ -d "$wsdir" ]] || continue
+    compose="$wsdir/docker-compose.yml"
+    [[ -f "$compose" ]] || continue
+    ws="$(basename "$wsdir")"
+    ok "  down: $ws"
+    docker compose -f "$compose" down >/dev/null 2>&1 || true
+  done
+fi
+
+ok "Done."

@@ -19,11 +19,20 @@ echo
 # Homebrew
 if has_cmd brew; then ok "brew installed"; else warn "brew missing (recommended)"; fi
 
-# Docker
+# Docker Desktop (macOS-specific check)
+if [[ -d "/Applications/Docker.app" ]]; then
+  ok "Docker Desktop app installed"
+else
+  warn "Docker Desktop app not found at /Applications/Docker.app"
+fi
+
+# Docker CLI + daemon
+DOCKER_OK=0
 if has_cmd docker; then
   ok "docker CLI installed"
   if docker info >/dev/null 2>&1; then
     ok "docker daemon running"
+    DOCKER_OK=1
   else
     bad "docker daemon NOT running (open Docker Desktop)"
   fi
@@ -34,7 +43,6 @@ fi
 # mkcert
 if has_cmd mkcert; then
   ok "mkcert installed"
-  # check local CA
   if mkcert -CAROOT >/dev/null 2>&1; then
     ok "mkcert CAROOT available"
   else
@@ -44,32 +52,60 @@ else
   warn "mkcert missing (HTTPS for *.test will fail)"
 fi
 
-# sshfs / macFUSE
-if has_cmd sshfs; then
-  ok "sshfs installed"
+# TLS cert presence (global, once)
+echo
+echo "--- TLS ---"
+CRT="$ROOT/proxy/certs/local.test.crt"
+KEY="$ROOT/proxy/certs/local.test.key"
+if [[ -f "$CRT" && -f "$KEY" ]]; then
+  ok "TLS cert present: proxy/certs/local.test.(crt|key)"
 else
-  warn "sshfs missing (mount helpers won't work)"
+  warn "TLS cert missing (re-run ./scripts/install to auto-generate)"
 fi
 
-# macFUSE presence (best-effort)
+# DNS wildcard (.test) (global, once)
+echo
+echo "--- DNS (.test wildcard) ---"
+if has_cmd dnsmasq; then
+  if ps aux | grep -v grep | grep -q dnsmasq; then
+    ok "dnsmasq running (*.test resolves)"
+  else
+    warn "dnsmasq installed but not running"
+  fi
+else
+  warn "dnsmasq not installed (*.test will not resolve)"
+fi
+
+# sshfs / macFUSE
+echo
+echo "--- Mount tooling ---"
+if has_cmd sshfs; then
+  ok "sshfs available"
+else
+  warn "sshfs missing (mount helpers won't work)"
+  warn "macOS: install via macFUSE + sshfs-mac (gromgit/fuse/sshfs-mac)"
+fi
+
 if [[ -d "/Library/Filesystems/macfuse.fs" ]] || [[ -d "/Library/Filesystems/osxfuse.fs" ]]; then
   ok "macFUSE appears installed"
 else
   warn "macFUSE not detected (sshfs may fail)"
 fi
 
+# Docker networks
 echo
 echo "--- Docker networks ---"
-if has_cmd docker && docker info >/dev/null 2>&1; then
+if [[ "$DOCKER_OK" -eq 1 ]]; then
   if docker network inspect proxy >/dev/null 2>&1; then ok "network: proxy"; else warn "network missing: proxy (run devbox-bootstrap)"; fi
   if docker network inspect devbox >/dev/null 2>&1; then ok "network: devbox"; else warn "network missing: devbox (run devbox-bootstrap)"; fi
 else
   warn "skipping network checks (docker not running)"
 fi
 
+# Core containers
 echo
 echo "--- Core containers ---"
-if has_cmd docker && docker info >/dev/null 2>&1; then
+if [[ "$DOCKER_OK" -eq 1 ]]; then
   for c in devbox-traefik devbox-mysql devbox-postgres devbox-redis; do
     if docker ps --format '{{.Names}}' | grep -qx "$c"; then
       ok "running: $c"
@@ -81,10 +117,13 @@ else
   warn "skipping container checks (docker not running)"
 fi
 
+# Workspaces
 echo
 echo "--- Workspaces ---"
 if [[ ! -d "$GEN" ]]; then
   warn "no generated/workspaces folder (expected if none created yet)"
+  echo "Create one with: devbox-ws-new"
+  echo "=== doctor done ==="
   exit 0
 fi
 
@@ -109,14 +148,18 @@ for wsdir in "$GEN"/*; do
 
   echo "Workspace: $ws (ssh port: $port)"
 
-  # Containers
-  for c in "ws-$ws" "ws-$ws-nginx" "ws-$ws-php81" "ws-$ws-php83" "ws-$ws-php84"; do
-    if has_cmd docker && docker info >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -qx "$c"; then
-      ok "  running: $c"
-    else
-      warn "  not running: $c"
-    fi
-  done
+  # Containers per workspace (only if docker running)
+  if [[ "$DOCKER_OK" -eq 1 ]]; then
+    for c in "ws-$ws" "ws-$ws-nginx" "ws-$ws-php81" "ws-$ws-php82" "ws-$ws-php83" "ws-$ws-php84" "ws-$ws-php85"; do
+      if docker ps --format '{{.Names}}' | grep -qx "$c"; then
+        ok "  running: $c"
+      else
+        warn "  not running: $c"
+      fi
+    done
+  else
+    warn "  skipping container checks (docker not running)"
+  fi
 
   # Port check
   if [[ "$port" != "?" ]]; then
@@ -133,28 +176,6 @@ for wsdir in "$GEN"/*; do
     ok "  mounted: $mp"
   else
     warn "  not mounted: $mp (use: devbox-mount $ws)"
-  fi
-
-  # TLS cert check
-  echo "--- TLS ---"
-  CRT="$ROOT/proxy/certs/local.test.crt"
-  KEY="$ROOT/proxy/certs/local.test.key"
-
-  if [[ -f "$CRT" && -f "$KEY" ]]; then
-    ok "TLS cert present"
-  else
-    warn "TLS cert missing (will auto-generate on install)"
-  fi
-  
-  echo "--- DNS (.test wildcard) ---"
-  if command -v dnsmasq >/dev/null 2>&1; then
-    if ps aux | grep -v grep | grep -q dnsmasq; then
-      ok "dnsmasq running (*.test resolves)"
-    else
-      warn "dnsmasq installed but not running"
-    fi
-  else
-    warn "dnsmasq not installed (*.test will not resolve)"
   fi
 
   echo

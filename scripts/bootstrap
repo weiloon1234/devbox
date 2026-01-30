@@ -54,9 +54,9 @@ if [[ -d "$GEN_ROOT" ]]; then
 
     # Extract pubkey filename from the compose file path line:
     # ../../keys/<pubkey>:/seed/authorized_keys:ro
-    pubkey="$(grep -E '^\s*-\s*\.\./\.\./keys/[^:]+:/seed/authorized_keys:ro' "$compose" \
+    pubkey="$(grep -E 'seed/authorized_keys:ro' "$compose" \
       | head -n1 \
-      | sed -E 's/^\s*-\s*\.\.\/\.\.\/keys\/([^:]+):.*/\1/')"
+      | sed -E 's/.*keys\/([^:"]+):\/seed\/authorized_keys:ro.*/\1/' )"
 
     if [[ -n "$pubkey" ]]; then
       [[ -f "$ROOT/keys/$pubkey" ]] || fail "workspace $(basename "$wsdir") requires missing key file: keys/$pubkey"
@@ -76,14 +76,12 @@ echo "[devbox] starting shared db..."
 docker compose -f "$ROOT/db/docker-compose.yml" up -d
 
 echo "[devbox] building php images..."
-docker build -t devbox-php:8.1 --build-arg PHP_VERSION=8.1 "$ROOT/runtime/php"
-docker build -t devbox-php:8.2 --build-arg PHP_VERSION=8.2 "$ROOT/runtime/php"
-docker build -t devbox-php:8.3 --build-arg PHP_VERSION=8.3 "$ROOT/runtime/php"
-docker build -t devbox-php:8.4 --build-arg PHP_VERSION=8.4 "$ROOT/runtime/php"
-docker build -t devbox-php:8.5 --build-arg PHP_VERSION=8.5 "$ROOT/runtime/php"
+for v in 8.1 8.2 8.3 8.4 8.5; do
+  docker build -t "devbox-php:${v}" "$ROOT/images/php/${v}"
+done
 
 echo "[devbox] building workspace image..."
-docker build -t devbox-workspace:latest "$ROOT/templates/workspace"
+docker build -t devbox-workspace:latest "$ROOT/images/workspace"
 
 # Start all generated workspaces
 echo "[devbox] starting generated workspaces..."

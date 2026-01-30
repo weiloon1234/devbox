@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fail() { echo "ERROR: $*" >&2; exit 1; }
 
 WS_NAME="${1:-}"
-[[ -n "$WS_NAME" ]] || fail "usage: ./scripts/ws-ssh <workspace-name>"
+[[ -n "$WS_NAME" ]] || fail "usage: devbox-ws-ssh <workspace-name>"
 
 COMPOSE="$ROOT/generated/workspaces/$WS_NAME/docker-compose.yml"
 [[ -f "$COMPOSE" ]] || fail "workspace not found: generated/workspaces/$WS_NAME"
@@ -17,5 +17,8 @@ PORT="$(grep -E '^\s*-\s*"127\.0\.0\.1:[0-9]+:22"' "$COMPOSE" \
 
 [[ -n "$PORT" ]] || fail "cannot detect ssh port in $COMPOSE"
 
-echo "[devbox] ssh into ws-$WS_NAME on 127.0.0.1:$PORT"
-exec ssh -p "$PORT" root@127.0.0.1
+# Workspace SSH user (by design: UID 1000 on Ubuntu 24.04)
+SSH_USER="ubuntu"
+
+echo "[devbox] ssh into ws-$WS_NAME as $SSH_USER on 127.0.0.1:$PORT"
+exec ssh -p "$PORT" "$SSH_USER@127.0.0.1"
