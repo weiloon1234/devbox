@@ -2,6 +2,7 @@ services:
   ws-__WS_NAME__:
     image: devbox-workspace:latest
     container_name: ws-__WS_NAME__
+    restart: unless-stopped
     working_dir: /workspace
 
     entrypoint: ["/bin/bash", "/bootstrap.sh"]
@@ -28,6 +29,7 @@ services:
   ws-__WS_NAME__-php81:
     image: devbox-php:8.1
     container_name: ws-__WS_NAME__-php81
+    restart: unless-stopped
     volumes:
       - __CODE_VOLUME__:/workspace
     networks:
@@ -36,6 +38,7 @@ services:
   ws-__WS_NAME__-php83:
     image: devbox-php:8.3
     container_name: ws-__WS_NAME__-php83
+    restart: unless-stopped
     volumes:
       - __CODE_VOLUME__:/workspace
     networks:
@@ -44,6 +47,7 @@ services:
   ws-__WS_NAME__-php82:
     image: devbox-php:8.2
     container_name: ws-__WS_NAME__-php82
+    restart: unless-stopped
     volumes:
       - __CODE_VOLUME__:/workspace
     networks:
@@ -52,6 +56,7 @@ services:
   ws-__WS_NAME__-php84:
     image: devbox-php:8.4
     container_name: ws-__WS_NAME__-php84
+    restart: unless-stopped
     volumes:
       - __CODE_VOLUME__:/workspace
     networks:
@@ -60,6 +65,7 @@ services:
   ws-__WS_NAME__-php85:
     image: devbox-php:8.5
     container_name: ws-__WS_NAME__-php85
+    restart: unless-stopped
     volumes:
       - __CODE_VOLUME__:/workspace
     networks:
@@ -68,6 +74,7 @@ services:
   ws-__WS_NAME__-nginx:
     image: nginx:alpine
     container_name: ws-__WS_NAME__-nginx
+    restart: unless-stopped
     depends_on:
       - ws-__WS_NAME__-php81
       - ws-__WS_NAME__-php83

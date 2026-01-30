@@ -2,6 +2,7 @@ services:
   traefik:
     image: traefik:v3.1
     container_name: devbox-traefik
+    restart: unless-stopped
     command:
       # Dashboard (optional; no published port here)
       - --api.dashboard=true

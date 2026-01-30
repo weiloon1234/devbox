@@ -2,6 +2,7 @@ services:
   devbox-mysql:
     image: mysql:8.4
     container_name: devbox-mysql
+    restart: unless-stopped
     command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: devbox
@@ -19,6 +20,7 @@ services:
   devbox-postgres:
     image: postgres:16
     container_name: devbox-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_PASSWORD: devbox
       POSTGRES_USER: devbox
@@ -34,6 +36,7 @@ services:
   devbox-redis:
     image: redis:7
     container_name: devbox-redis
+    restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "127.0.0.1:6379:6379"
