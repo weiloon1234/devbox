@@ -144,6 +144,22 @@ fi
 # Create directories + write stub inside workspace volume
 docker exec "ws-$WS" bash -lc "mkdir -p '$REMOTE_PROJECT_DIR' '$REMOTE_STUB_DIR'"
 
+# Scaffold per-project .devcontainer/devcontainer.json (skip if exists)
+docker exec "ws-$WS" bash -lc "[ -f '$REMOTE_PROJECT_DIR/.devcontainer/devcontainer.json' ]" 2>/dev/null || \
+  docker exec -i "ws-$WS" bash -c "mkdir -p '$REMOTE_PROJECT_DIR/.devcontainer' && cat > '$REMOTE_PROJECT_DIR/.devcontainer/devcontainer.json'" <<EOF
+{
+  "name": "${PROJECT}",
+  "remoteUser": "ubuntu",
+  "workspaceFolder": "${REMOTE_PROJECT_DIR}",
+  "customizations": {
+    "vscode": {
+      "extensions": [],
+      "settings": {}
+    }
+  }
+}
+EOF
+
 case "$TYPE" in
   laravel|php)
     # PHP / Laravel stub

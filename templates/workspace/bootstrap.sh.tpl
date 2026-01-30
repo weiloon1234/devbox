@@ -121,6 +121,11 @@ seed_file /seed/ai/gemini/GEMINI.md           "$DEV_HOME/.gemini/GEMINI.md"
 seed_file /seed/ai/opencode/auth.json "$DEV_HOME/.local/share/opencode/auth.json"
 seed_dir  /seed/ai/opencode/config    "$DEV_HOME/.config/opencode"
 
+# ── Git defaults ──
+su "$DEV_USER" -c 'git config --global init.defaultBranch main'
+su "$DEV_USER" -c 'git config --global user.name "__GIT_NAME__"'
+su "$DEV_USER" -c 'git config --global user.email "__GIT_EMAIL__"'
+
 # ── Workspace directory setup ──
 mkdir -p /workspace/projects
 chown "$DEV_USER:$DEV_USER" /workspace /workspace/projects
@@ -129,10 +134,42 @@ chown "$DEV_USER:$DEV_USER" /workspace /workspace/projects
 ln -sfn /workspace/projects "$DEV_HOME/projects"
 chown -h "$DEV_USER:$DEV_USER" "$DEV_HOME/projects"
 
-# Default SSH login dir → /workspace
-if ! grep -q 'cd /workspace' "$DEV_HOME/.bashrc" 2>/dev/null; then
-  echo 'cd /workspace' >> "$DEV_HOME/.bashrc"
-  chown "$DEV_USER:$DEV_USER" "$DEV_HOME/.bashrc"
+# Persist JetBrains + VS Code Server caches on the workspace volume
+# (avoids re-downloading ~1GB IDE backend on every container restart)
+for cache_name in JetBrains RemoteDev vscode-server; do
+  mkdir -p "/workspace/.ide-cache/$cache_name"
+  ln -sfn "/workspace/.ide-cache/$cache_name" "$DEV_HOME/.$cache_name"
+  chown -h "$DEV_USER:$DEV_USER" "$DEV_HOME/.$cache_name"
+done
+chown -R "$DEV_USER:$DEV_USER" /workspace/.ide-cache
+
+# ── Dev Container config (workspace-level default) ──
+DEVCONTAINER_DIR="/workspace/.devcontainer"
+DEVCONTAINER_JSON="$DEVCONTAINER_DIR/devcontainer.json"
+if [[ ! -f "$DEVCONTAINER_JSON" ]]; then
+  mkdir -p "$DEVCONTAINER_DIR"
+  cat > "$DEVCONTAINER_JSON" <<DCEOF
+{
+  "name": "devbox-$WS_NAME",
+  "remoteUser": "$DEV_USER",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bmewburn.vscode-intelephense-client",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}
+DCEOF
+  chown -R "$DEV_USER:$DEV_USER" "$DEVCONTAINER_DIR"
+  log "created workspace devcontainer.json"
 fi
 
 # Ensure sshd runtime dir

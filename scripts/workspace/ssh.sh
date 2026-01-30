@@ -15,4 +15,4 @@ ws_load_meta "$WS_NAME"
 SSH_USER="ubuntu"
 
 echo "[devbox] ssh into ws-$WS_NAME as $SSH_USER on 127.0.0.1:$SSH_PORT"
-exec ssh -i "$WS_PRIVKEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p "$SSH_PORT" "$SSH_USER@127.0.0.1"
+exec ssh -i "$WS_PRIVKEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p "$SSH_PORT" "$SSH_USER@127.0.0.1" -t "cd /workspace && exec bash -l"
